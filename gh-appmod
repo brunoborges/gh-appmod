@@ -1,35 +1,417 @@
 #!/usr/bin/env bash
 set -e
 
-echo "Hello gh-appmod!"
+# ─── gh-appmod ───────────────────────────────────────────────────────────────
+# GitHub CLI extension for GitHub Copilot App Modernization for Java.
+# Helps developers upgrade, migrate, and deploy Java applications using
+# GitHub Copilot CLI and the App Modernization MCP server.
+# ─────────────────────────────────────────────────────────────────────────────
 
-# Snippets to help get started:
+VERSION="0.1.0"
 
-# Determine if an executable is in the PATH
-# if ! type -p ruby >/dev/null; then
-#   echo "Ruby not found on the system" >&2
-#   exit 1
-# fi
+# MCP server configuration
+MCP_SERVER_NAME="app-modernization"
+MCP_SERVER_PACKAGE="@microsoft/github-copilot-app-modernization-mcp-server"
+MCP_CONFIG_JSON='{"mcpServers":{"app-modernization":{"type":"local","command":"npx","tools":["*"],"args":["-y","@microsoft/github-copilot-app-modernization-mcp-server"]}}}'
 
-# Pass arguments through to another command
-# gh issue list "$@" -R cli/cli
+COPILOT_CONFIG_DIR="${COPILOT_HOME:-$HOME/.copilot}"
+MCP_CONFIG_FILE="${COPILOT_CONFIG_DIR}/mcp-config.json"
 
-# Using the gh api command to retrieve and format information
-# QUERY='
-#   query($endCursor: String) {
-#     viewer {
-#       repositories(first: 100, after: $endCursor) {
-#         nodes {
-#           nameWithOwner
-#           stargazerCount
-#         }
-#       }
-#     }
-#   }
-# '
-# TEMPLATE='
-#   {{- range $repo := .data.viewer.repositories.nodes -}}
-#     {{- printf "name: %s - stargazers: %v\n" $repo.nameWithOwner $repo.stargazerCount -}}
-#   {{- end -}}
-# '
-# exec gh api graphql -f query="${QUERY}" --paginate --template="${TEMPLATE}"
+# ─── Colors ──────────────────────────────────────────────────────────────────
+
+if [ -t 1 ]; then
+  BOLD='\033[1m'
+  RED='\033[0;31m'
+  GREEN='\033[0;32m'
+  YELLOW='\033[0;33m'
+  BLUE='\033[0;34m'
+  CYAN='\033[0;36m'
+  NC='\033[0m'
+else
+  BOLD='' RED='' GREEN='' YELLOW='' BLUE='' CYAN='' NC=''
+fi
+
+# ─── Utility Functions ───────────────────────────────────────────────────────
+
+print_header() {
+  echo -e "${BOLD}${CYAN}GitHub Copilot App Modernization for Java${NC}"
+  echo -e "${CYAN}──────────────────────────────────────────${NC}"
+}
+
+success() { echo -e "${GREEN}✓${NC} $1"; }
+warn()    { echo -e "${YELLOW}⚠${NC} $1"; }
+error()   { echo -e "${RED}✗${NC} $1" >&2; }
+info()    { echo -e "${BLUE}ℹ${NC} $1"; }
+
+# ─── Prerequisite Checks ────────────────────────────────────────────────────
+
+check_node() {
+  if ! type -p node >/dev/null 2>&1; then
+    error "Node.js is not installed. Version 22+ is required."
+    echo "  Install from: https://nodejs.org/"
+    return 1
+  fi
+
+  local node_version node_major
+  node_version=$(node --version | sed 's/^v//')
+  node_major=$(echo "$node_version" | cut -d. -f1)
+
+  if [ "$node_major" -lt 22 ]; then
+    error "Node.js version $node_version found, but 22+ is required."
+    return 1
+  fi
+
+  success "Node.js v$node_version"
+}
+
+check_npm() {
+  if ! type -p npm >/dev/null 2>&1; then
+    error "npm is not installed. Version 10+ is required."
+    return 1
+  fi
+
+  local npm_version npm_major
+  npm_version=$(npm --version)
+  npm_major=$(echo "$npm_version" | cut -d. -f1)
+
+  if [ "$npm_major" -lt 10 ]; then
+    error "npm version $npm_version found, but 10+ is required."
+    return 1
+  fi
+
+  success "npm v$npm_version"
+}
+
+check_copilot() {
+  if ! type -p copilot >/dev/null 2>&1; then
+    error "GitHub Copilot CLI is not installed."
+    echo "  Install: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli"
+    return 1
+  fi
+
+  local copilot_version
+  copilot_version=$(copilot --version 2>/dev/null | head -1)
+  success "Copilot CLI $copilot_version"
+}
+
+check_gh() {
+  if ! type -p gh >/dev/null 2>&1; then
+    error "GitHub CLI (gh) is not installed."
+    return 1
+  fi
+  success "GitHub CLI ($(gh --version 2>/dev/null | head -1))"
+}
+
+# ─── Commands ────────────────────────────────────────────────────────────────
+
+cmd_check() {
+  print_header
+  echo ""
+  echo -e "${BOLD}Checking prerequisites...${NC}"
+  echo ""
+
+  local all_ok=true
+  check_gh      || all_ok=false
+  check_node    || all_ok=false
+  check_npm     || all_ok=false
+  check_copilot || all_ok=false
+
+  echo ""
+
+  if [ -f "$MCP_CONFIG_FILE" ]; then
+    if grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
+      success "MCP server '${MCP_SERVER_NAME}' is configured in ${MCP_CONFIG_FILE}"
+    else
+      warn "MCP server '${MCP_SERVER_NAME}' not configured. Run 'gh appmod setup' to add it."
+    fi
+  else
+    warn "No MCP config found at ${MCP_CONFIG_FILE}. Run 'gh appmod setup' to create it."
+  fi
+
+  echo ""
+  if [ "$all_ok" = true ]; then
+    success "All prerequisites met!"
+  else
+    error "Some prerequisites are missing. Please install them before continuing."
+    exit 1
+  fi
+}
+
+cmd_setup() {
+  print_header
+  echo ""
+  echo -e "${BOLD}Configuring App Modernization MCP server...${NC}"
+  echo ""
+
+  # Ensure config directory exists
+  if [ ! -d "$COPILOT_CONFIG_DIR" ]; then
+    mkdir -p "$COPILOT_CONFIG_DIR"
+    info "Created config directory: ${COPILOT_CONFIG_DIR}"
+  fi
+
+  if [ -f "$MCP_CONFIG_FILE" ]; then
+    # Already configured?
+    if grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
+      success "MCP server '${MCP_SERVER_NAME}' is already configured in ${MCP_CONFIG_FILE}"
+      echo ""
+      info "To reconfigure, remove the '${MCP_SERVER_NAME}' entry and run this command again."
+      return 0
+    fi
+
+    # Merge into existing config using Node.js for safe JSON manipulation
+    if ! type -p node >/dev/null 2>&1; then
+      error "Node.js is required to safely merge JSON config. Install Node.js 22+ first."
+      exit 1
+    fi
+
+    local new_config
+    new_config=$(node -e "
+      const fs = require('fs');
+      const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+      if (!config.mcpServers) config.mcpServers = {};
+      config.mcpServers['${MCP_SERVER_NAME}'] = {
+        type: 'local',
+        command: 'npx',
+        tools: ['*'],
+        args: ['-y', '${MCP_SERVER_PACKAGE}']
+      };
+      console.log(JSON.stringify(config, null, 2));
+    " "$MCP_CONFIG_FILE")
+    echo "$new_config" > "$MCP_CONFIG_FILE"
+    success "Added '${MCP_SERVER_NAME}' MCP server to ${MCP_CONFIG_FILE}"
+  else
+    # Create new config file
+    cat > "$MCP_CONFIG_FILE" <<-MCPEOF
+{
+  "mcpServers": {
+    "${MCP_SERVER_NAME}": {
+      "type": "local",
+      "command": "npx",
+      "tools": [
+        "*"
+      ],
+      "args": [
+        "-y",
+        "${MCP_SERVER_PACKAGE}"
+      ]
+    }
+  }
+}
+MCPEOF
+    success "Created ${MCP_CONFIG_FILE} with '${MCP_SERVER_NAME}' MCP server"
+  fi
+
+  echo ""
+  info "Verify with: copilot → /mcp show"
+  info "Or run:      gh appmod check"
+}
+
+# Launch copilot with the MCP server and a prompt
+launch_copilot() {
+  local prompt="$1"
+  shift
+  local extra_args=("$@")
+
+  if ! type -p copilot >/dev/null 2>&1; then
+    error "GitHub Copilot CLI is not installed."
+    echo "  Install: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli" >&2
+    exit 1
+  fi
+
+  local args=()
+
+  # Inject MCP server inline if not already in the persistent config
+  if ! grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
+    info "MCP server not in persistent config; injecting for this session."
+    info "Run 'gh appmod setup' to make it permanent."
+    echo ""
+    args+=(--additional-mcp-config "$MCP_CONFIG_JSON")
+  fi
+
+  # Pass through extra args (--yolo, --model, etc.)
+  if [ ${#extra_args[@]} -gt 0 ]; then
+    args+=("${extra_args[@]}")
+  fi
+
+  # Launch interactive mode with the prompt
+  args+=(-i "$prompt")
+
+  exec copilot "${args[@]}"
+}
+
+# Parse common flags for upgrade/migrate/deploy commands
+parse_action_args() {
+  PROMPT=""
+  EXTRA_ARGS=()
+
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --yolo|--allow-all|--allow-all-tools|--allow-all-paths|--allow-all-urls|--autopilot)
+        EXTRA_ARGS+=("$1")
+        ;;
+      --model|--effort|--reasoning-effort|--agent|--add-dir)
+        EXTRA_ARGS+=("$1" "$2")
+        shift
+        ;;
+      -*)
+        EXTRA_ARGS+=("$1")
+        ;;
+      *)
+        if [ -z "$PROMPT" ]; then
+          PROMPT="$1"
+        else
+          PROMPT="$PROMPT $1"
+        fi
+        ;;
+    esac
+    shift
+  done
+}
+
+cmd_upgrade() {
+  # Handle --help before parsing
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod upgrade [options] [prompt]"
+      echo ""
+      echo "Launch Copilot CLI to upgrade your Java application."
+      echo ""
+      echo "If no prompt is provided, a default upgrade prompt is used."
+      echo "Any extra flags are passed through to the copilot CLI."
+      echo ""
+      echo "Options:"
+      echo "  --yolo          Enable all permissions (no confirmations)"
+      echo "  --model <name>  Use a specific AI model"
+      echo "  -h, --help      Show this help"
+      echo ""
+      echo "Examples:"
+      echo "  gh appmod upgrade"
+      echo "  gh appmod upgrade \"Upgrade to JDK 21 and Spring Boot 3.2\""
+      echo "  gh appmod upgrade --yolo \"Upgrade to latest Java LTS\""
+      return 0
+    fi
+  done
+
+  parse_action_args "$@"
+
+  if [ -z "$PROMPT" ]; then
+    PROMPT="Upgrade this Java project to the latest Java LTS version and latest compatible framework versions. Analyze the project first, then generate an upgrade plan, perform code remediation, build the project, and check for vulnerabilities."
+  fi
+
+  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
+}
+
+cmd_migrate() {
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod migrate [options] [prompt]"
+      echo ""
+      echo "Launch Copilot CLI to migrate your Java application to Azure."
+      echo ""
+      echo "If no prompt is provided, a default migration prompt is used."
+      echo "Any extra flags are passed through to the copilot CLI."
+      echo ""
+      echo "Options:"
+      echo "  --yolo          Enable all permissions (no confirmations)"
+      echo "  --model <name>  Use a specific AI model"
+      echo "  -h, --help      Show this help"
+      echo ""
+      echo "Examples:"
+      echo "  gh appmod migrate"
+      echo "  gh appmod migrate \"Migrate from S3 to Azure Blob Storage\""
+      echo "  gh appmod migrate \"Migrate from Oracle DB to Azure PostgreSQL\""
+      return 0
+    fi
+  done
+
+  parse_action_args "$@"
+
+  if [ -z "$PROMPT" ]; then
+    PROMPT="Analyze this Java project and help me migrate it to Azure. Identify the current dependencies and services, suggest appropriate Azure equivalents, and perform the migration step by step."
+  fi
+
+  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
+}
+
+cmd_deploy() {
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod deploy [options] [prompt]"
+      echo ""
+      echo "Launch Copilot CLI to deploy your Java application to Azure."
+      echo ""
+      echo "If no prompt is provided, a default deployment prompt is used."
+      echo "Any extra flags are passed through to the copilot CLI."
+      echo ""
+      echo "Options:"
+      echo "  --yolo          Enable all permissions (no confirmations)"
+      echo "  --model <name>  Use a specific AI model"
+      echo "  -h, --help      Show this help"
+      echo ""
+      echo "Examples:"
+      echo "  gh appmod deploy"
+      echo "  gh appmod deploy \"Deploy this application to Azure App Service\""
+      echo "  gh appmod deploy \"Deploy to Azure Kubernetes Service\""
+      return 0
+    fi
+  done
+
+  parse_action_args "$@"
+
+  if [ -z "$PROMPT" ]; then
+    PROMPT="Deploy this Java application to Azure. Analyze the project, recommend the best Azure service for deployment, and guide me through the deployment process."
+  fi
+
+  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
+}
+
+cmd_help() {
+  print_header
+  echo ""
+  echo -e "${BOLD}Usage:${NC} gh appmod <command> [options] [prompt]"
+  echo ""
+  echo -e "${BOLD}Commands:${NC}"
+  echo "  check      Check prerequisites (Node.js, npm, Copilot CLI)"
+  echo "  setup      Configure the App Modernization MCP server"
+  echo "  upgrade    Upgrade your Java application (version, framework)"
+  echo "  migrate    Migrate your Java application to Azure"
+  echo "  deploy     Deploy your Java application to Azure"
+  echo ""
+  echo -e "${BOLD}Options:${NC}"
+  echo "  --yolo          Pass --yolo to copilot (enable all permissions)"
+  echo "  --model <name>  Pass --model to copilot (choose AI model)"
+  echo "  -h, --help      Show help for a command"
+  echo "  -v, --version   Show version"
+  echo ""
+  echo -e "${BOLD}Getting started:${NC}"
+  echo "  1. gh appmod check        # Verify prerequisites"
+  echo "  2. gh appmod setup         # Configure MCP server"
+  echo "  3. gh appmod upgrade       # Start upgrading!"
+  echo ""
+  echo -e "${BOLD}Examples:${NC}"
+  echo "  gh appmod upgrade \"Upgrade to JDK 21 and Spring Boot 3.2\""
+  echo "  gh appmod migrate \"Migrate from S3 to Azure Blob Storage\""
+  echo "  gh appmod deploy \"Deploy to Azure App Service\""
+  echo "  gh appmod upgrade --yolo   # Upgrade with auto-approval"
+  echo ""
+  echo -e "${BOLD}Learn more:${NC}"
+  echo "  https://aka.ms/ghcp-appmod"
+}
+
+# ─── Main ────────────────────────────────────────────────────────────────────
+
+case "${1:-}" in
+  check)   shift; cmd_check "$@" ;;
+  setup)   shift; cmd_setup "$@" ;;
+  upgrade) shift; cmd_upgrade "$@" ;;
+  migrate) shift; cmd_migrate "$@" ;;
+  deploy)  shift; cmd_deploy "$@" ;;
+  -v|--version) echo "gh-appmod $VERSION" ;;
+  -h|--help|"") cmd_help ;;
+  *)
+    error "Unknown command: $1"
+    echo ""
+    cmd_help
+    exit 1
+    ;;
+esac
