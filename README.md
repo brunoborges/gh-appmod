@@ -56,6 +56,7 @@ Each command launches Copilot CLI in interactive mode — you collaborate with C
 |---------|-------------|
 | `gh appmod check` | Verify prerequisites (Node.js, npm, Copilot CLI) |
 | `gh appmod setup` | Configure the App Modernization MCP server |
+| `gh appmod init` | Enable agentic workflows for continuous modernization |
 | `gh appmod upgrade [prompt]` | Upgrade Java version and framework |
 | `gh appmod migrate [prompt]` | Migrate services to Azure |
 | `gh appmod deploy [prompt]` | Deploy to Azure |
