@@ -60,6 +60,9 @@ GitHub Agentic Workflows (`gh-aw`) provide the ideal foundation because:
 ┌─────────────────────────────────────────────────────────────┐
 │                    GitHub Repository                         │
 │                                                              │
+│  .github/agents/                                             │
+│  └── app-modernization.agent.md    (custom Copilot agent)    │
+│                                                              │
 │  .github/workflows/                                          │
 │  ├── shared/mcp/app-modernization.md   (MCP server config)   │
 │  ├── appmod-upgrade.md                 (upgrade workflow)     │
@@ -90,6 +93,15 @@ GitHub Agentic Workflows (`gh-aw`) provide the ideal foundation because:
 ```
 
 ## Workflow Catalog
+
+### Custom Copilot Agent (`app-modernization.agent.md`)
+
+A [custom Copilot agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) that enables interactive modernization through Copilot Chat — in VS Code, JetBrains, or on github.com. Developers can ask the agent to assess, upgrade, or migrate their Java application conversationally, with the App Modernization MCP server providing specialized tools.
+
+Example interactions:
+- *"Assess the modernization posture of this project"*
+- *"Upgrade to JDK 21 and Spring Boot 3.4"*
+- *"Migrate from S3 to Azure Blob Storage"*
 
 ### 1. Upgrade Assessment (`appmod-assess.md`)
 
@@ -159,7 +171,7 @@ This copies the agentic workflow files into `.github/workflows/` and compiles th
 ### 3. Commit and push
 
 ```bash
-git add .github/workflows/
+git add .github/agents/ .github/workflows/
 git commit -m "Add continuous app modernization workflows"
 git push
 ```

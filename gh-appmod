@@ -107,6 +107,7 @@ EXTENSION_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Agentic workflow source files bundled with this extension
 AW_WORKFLOWS_DIR="${EXTENSION_DIR}/.github/workflows"
+AW_AGENTS_DIR="${EXTENSION_DIR}/.github/agents"
 
 # ─── Commands ────────────────────────────────────────────────────────────────
 
@@ -228,6 +229,7 @@ cmd_add_workflows() {
       echo "  -h, --help      Show this help"
       echo ""
       echo "What gets added:"
+      echo "  .github/agents/app-modernization.agent.md          (custom Copilot agent)"
       echo "  .github/workflows/shared/mcp/app-modernization.md  (MCP server config)"
       echo "  .github/workflows/appmod-assess.md                 (weekly health check)"
       echo "  .github/workflows/appmod-upgrade.md                (upgrade via PR)"
@@ -267,12 +269,28 @@ cmd_add_workflows() {
   # Create target directories
   local target_dir="${repo_root}/.github/workflows"
   local target_shared_dir="${target_dir}/shared/mcp"
-  mkdir -p "$target_shared_dir"
+  local target_agents_dir="${repo_root}/.github/agents"
+  mkdir -p "$target_shared_dir" "$target_agents_dir"
 
-  # Copy workflow files
+  # Copy files
   local files_copied=0
   local files_skipped=0
 
+  # Copy custom agent file
+  local agent_src="${AW_AGENTS_DIR}/app-modernization.agent.md"
+  local agent_dst="${target_agents_dir}/app-modernization.agent.md"
+  if [ -f "$agent_src" ]; then
+    if [ -f "$agent_dst" ]; then
+      warn "Already exists: .github/agents/app-modernization.agent.md (skipping)"
+      files_skipped=$((files_skipped + 1))
+    else
+      cp "$agent_src" "$agent_dst"
+      success "Added .github/agents/app-modernization.agent.md"
+      files_copied=$((files_copied + 1))
+    fi
+  fi
+
+  # Copy workflow files
   local workflow_files=(
     "shared/mcp/app-modernization.md"
     "appmod-assess.md"
@@ -302,7 +320,7 @@ cmd_add_workflows() {
   echo ""
 
   if [ "$files_copied" -eq 0 ] && [ "$files_skipped" -gt 0 ]; then
-    info "All workflow files already exist. Nothing to do."
+    info "All files already exist. Nothing to do."
     echo ""
     info "To re-add, remove the existing files and run this command again."
     return 0
@@ -346,7 +364,7 @@ cmd_add_workflows() {
   echo "  2. Customize triggers, schedules, and labels as needed"
   echo "  3. Commit and push:"
   echo ""
-  echo "     git add .github/workflows/"
+  echo "     git add .github/agents/ .github/workflows/"
   echo "     git commit -m \"Enable continuous app modernization workflows\""
   echo "     git push"
   echo ""

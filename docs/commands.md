@@ -111,6 +111,7 @@ gh appmod add-workflows [options]
 
 | File | Description |
 |------|-------------|
+| `.github/agents/app-modernization.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
 | `.github/workflows/shared/mcp/app-modernization.md` | Shared MCP server config for the App Modernization server |
 | `.github/workflows/appmod-assess.md` | Weekly assessment — reports modernization posture as a GitHub issue |
 | `.github/workflows/appmod-upgrade.md` | Upgrade workflow — produces PRs with JDK/framework/dependency upgrades |

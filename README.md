@@ -81,7 +81,7 @@ Turn app modernization into a continuous SDLC practice — not a one-off task. U
 gh appmod add-workflows
 ```
 
-This adds the following workflows to your repository:
+This adds a **custom Copilot agent** (`.github/agents/app-modernization.agent.md`) for interactive use in Copilot Chat, plus the following agentic workflows:
 
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
