@@ -136,6 +136,7 @@ Migrates application services to Azure equivalents using the predefined migratio
 ### Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) with the `gh-aw` extension installed
+- The `gh-appmod` extension installed
 - A GitHub repository containing a Java application
 - A [GitHub Copilot subscription](https://github.com/features/copilot/plans) (for the Copilot engine)
 
@@ -145,32 +146,17 @@ Migrates application services to Azure equivalents using the predefined migratio
 gh extension install github/gh-aw
 ```
 
-### 2. Copy the sample workflows
+### 2. Add the workflows to your repository
 
-Copy the workflow files from this repository's `.github/workflows/` directory into your Java project's `.github/workflows/` directory:
-
-```bash
-# From your Java project root
-mkdir -p .github/workflows/shared/mcp
-
-cp <path-to-gh-appmod>/.github/workflows/shared/mcp/app-modernization.md \
-   .github/workflows/shared/mcp/
-
-cp <path-to-gh-appmod>/.github/workflows/appmod-assess.md \
-   <path-to-gh-appmod>/.github/workflows/appmod-upgrade.md \
-   <path-to-gh-appmod>/.github/workflows/appmod-migrate.md \
-   .github/workflows/
-```
-
-### 3. Compile the workflows
+From your Java project root:
 
 ```bash
-gh aw compile
+gh appmod add-workflows
 ```
 
-This generates the corresponding `.lock.yml` files that GitHub Actions will execute.
+This copies the agentic workflow files into `.github/workflows/` and compiles them with `gh aw compile` (if available).
 
-### 4. Commit and push
+### 3. Commit and push
 
 ```bash
 git add .github/workflows/
@@ -178,7 +164,7 @@ git commit -m "Add continuous app modernization workflows"
 git push
 ```
 
-### 5. Trigger your first run
+### 4. Trigger your first run
 
 ```bash
 # Run a modernization assessment

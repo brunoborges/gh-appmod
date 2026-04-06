@@ -136,5 +136,6 @@ You remain in control throughout — Copilot asks for approval before modifying 
 - [Upgrade Guide](upgrade.md) — Deep dive into Java upgrade scenarios
 - [Migration Guide](migration.md) — Detailed migration scenarios and predefined tasks
 - [Deployment Guide](deployment.md) — Deploying to Azure services
+- [Agentic Workflows](agentic-workflows.md) — Enable continuous modernization via GitHub Agentic Workflows
 - [Configuration](configuration.md) — MCP server and Copilot CLI configuration
 - [Troubleshooting](troubleshooting.md) — Common issues and solutions

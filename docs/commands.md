@@ -82,6 +82,59 @@ The following entry is added to `~/.copilot/mcp-config.json`:
 
 ---
 
+## `gh appmod add-workflows`
+
+Add GitHub Agentic Workflows for continuous app modernization to the current repository.
+
+### Usage
+
+```bash
+gh appmod add-workflows [options]
+```
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `--no-compile` | Skip compiling workflows with `gh aw` |
+| `-h`, `--help` | Show command help |
+
+### Behavior
+
+- Must be run from inside a Git repository
+- Copies agentic workflow files into `.github/workflows/`
+- Skips files that already exist (safe to re-run)
+- Attempts to compile with `gh aw compile` if `gh-aw` is installed
+- Reports next steps for committing and triggering workflows
+
+### Files Added
+
+| File | Description |
+|------|-------------|
+| `.github/workflows/shared/mcp/app-modernization.md` | Shared MCP server config for the App Modernization server |
+| `.github/workflows/appmod-assess.md` | Weekly assessment — reports modernization posture as a GitHub issue |
+| `.github/workflows/appmod-upgrade.md` | Upgrade workflow — produces PRs with JDK/framework/dependency upgrades |
+| `.github/workflows/appmod-migrate.md` | Migration workflow — produces PRs migrating services to Azure |
+
+### Prerequisites
+
+- [GitHub CLI](https://cli.github.com/) (`gh`)
+- [`gh-aw` extension](https://github.github.com/gh-aw/) (for compiling workflows)
+
+### Examples
+
+```bash
+# Add workflows and compile
+gh appmod add-workflows
+
+# Add workflows without compiling
+gh appmod add-workflows --no-compile
+```
+
+See the [Agentic Workflows documentation](agentic-workflows.md) for details on each workflow, the security model, and customization options.
+
+---
+
 ## `gh appmod upgrade [prompt]`
 
 Launch Copilot CLI to upgrade your Java application.

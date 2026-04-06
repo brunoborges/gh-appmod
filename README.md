@@ -77,6 +77,12 @@ This extension wraps the [GitHub Copilot CLI](https://docs.github.com/en/copilot
 
 Turn app modernization into a continuous SDLC practice — not a one-off task. Using [GitHub Agentic Workflows](https://github.github.com/gh-aw/), modernization runs automatically on GitHub.com, producing reviewable pull requests.
 
+```bash
+gh appmod add-workflows
+```
+
+This adds the following workflows to your repository:
+
 | Workflow | Trigger | Description |
 |----------|---------|-------------|
 | [`appmod-assess`](.github/workflows/appmod-assess.md) | Weekly schedule / manual | Assesses modernization posture, creates an issue with findings |
