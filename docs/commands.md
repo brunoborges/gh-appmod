@@ -61,7 +61,7 @@ gh appmod init
 
 **Step 2: Custom Copilot Agent**
 
-- If inside a Git repository, copies `.github/agents/app-modernization.agent.md` into the repo
+- If inside a Git repository, copies `.github/agents/appmod.agent.md` into the repo
 - The agent enables interactive modernization in Copilot Chat (VS Code, JetBrains, github.com)
 - Skips if the agent file already exists (safe to re-run)
 - Skips if not inside a Git repository
@@ -87,7 +87,7 @@ The following entry is added to `~/.copilot/mcp-config.json`:
 
 | File | Description |
 |------|-------------|
-| `.github/agents/app-modernization.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
+| `.github/agents/appmod.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
 
 ### Environment Variables
 

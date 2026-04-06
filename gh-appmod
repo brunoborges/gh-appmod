@@ -221,9 +221,9 @@ MCPEOF
   local repo_root
   repo_root=$(git rev-parse --show-toplevel)
 
-  local agent_src="${AW_AGENTS_DIR}/app-modernization.agent.md"
+  local agent_src="${AW_AGENTS_DIR}/appmod.agent.md"
   local target_agents_dir="${repo_root}/.github/agents"
-  local agent_dst="${target_agents_dir}/app-modernization.agent.md"
+  local agent_dst="${target_agents_dir}/appmod.agent.md"
 
   if [ ! -f "$agent_src" ]; then
     warn "Agent file not found in extension. Skipping."
@@ -231,11 +231,11 @@ MCPEOF
   fi
 
   if [ -f "$agent_dst" ]; then
-    success "Custom agent already exists at .github/agents/app-modernization.agent.md"
+    success "Custom agent already exists at .github/agents/appmod.agent.md"
   else
     mkdir -p "$target_agents_dir"
     cp "$agent_src" "$agent_dst"
-    success "Added .github/agents/app-modernization.agent.md"
+    success "Added .github/agents/appmod.agent.md"
   fi
 
   echo ""

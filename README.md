@@ -79,9 +79,9 @@ The CLI commands above run **locally** in your terminal. But app modernization s
 
 ### Custom Copilot Agent
 
-`gh appmod init` adds a [custom Copilot agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) to your repository (`.github/agents/app-modernization.agent.md`). This lets you interact with the App Modernization MCP server **conversationally** in Copilot Chat — in VS Code, JetBrains, or on github.com:
+`gh appmod init` adds a [custom Copilot agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) to your repository (`.github/agents/appmod.agent.md`). This lets you interact with the App Modernization MCP server **conversationally** in Copilot Chat — in VS Code, JetBrains, or on github.com:
 
-> `@app-modernization` assess this project's modernization posture
+> `@appmod` assess this project's modernization posture
 
 The agent can assess, upgrade, migrate, and remediate Java applications — the same capabilities as the CLI, but through a chat interface.
 

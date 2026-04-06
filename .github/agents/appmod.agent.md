@@ -1,5 +1,5 @@
 ---
-name: app-modernization
+name: appmod
 description: >
   Java application modernization specialist. Upgrades Java versions and frameworks,
   migrates services to Azure, assesses modernization posture, and remediates code
