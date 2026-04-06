@@ -72,6 +72,18 @@ This extension wraps the [GitHub Copilot CLI](https://docs.github.com/en/copilot
 2. Launches `copilot` in interactive mode with your prompt
 3. Copilot analyzes your project, generates a plan, applies changes, and validates
 
+## Agentic Workflows (Continuous Modernization)
+
+Turn app modernization into a continuous SDLC practice — not a one-off task. Using [GitHub Agentic Workflows](https://github.github.com/gh-aw/), modernization runs automatically on GitHub.com, producing reviewable pull requests.
+
+| Workflow | Trigger | Description |
+|----------|---------|-------------|
+| [`appmod-assess`](.github/workflows/appmod-assess.md) | Weekly schedule / manual | Assesses modernization posture, creates an issue with findings |
+| [`appmod-upgrade`](.github/workflows/appmod-upgrade.md) | Monthly schedule / manual | Upgrades Java version, framework, and dependencies via PR |
+| [`appmod-migrate`](.github/workflows/appmod-migrate.md) | Manual | Migrates services to Azure equivalents via PR |
+
+📖 **[Agentic Workflows Proposal →](docs/agentic-workflows.md)**
+
 ## Documentation
 
 | Guide | Description |
@@ -82,6 +94,7 @@ This extension wraps the [GitHub Copilot CLI](https://docs.github.com/en/copilot
 | [Migration Guide](docs/migration.md) | Migration scenarios and predefined tasks |
 | [Deployment Guide](docs/deployment.md) | Deploying to Azure services |
 | [Configuration](docs/configuration.md) | MCP server and Copilot CLI configuration |
+| [Agentic Workflows](docs/agentic-workflows.md) | Continuous modernization via GitHub Agentic Workflows |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 
 ## Learn More
