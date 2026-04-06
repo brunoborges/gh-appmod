@@ -73,21 +73,35 @@ This extension wraps the [GitHub Copilot CLI](https://docs.github.com/en/copilot
 2. Launches `copilot` in interactive mode with your prompt
 3. Copilot analyzes your project, generates a plan, applies changes, and validates
 
-## Agentic Workflows (Continuous Modernization)
+## Beyond the CLI
 
-Turn app modernization into a continuous SDLC practice — not a one-off task. Using [GitHub Agentic Workflows](https://github.github.com/gh-aw/), modernization runs automatically on GitHub.com, producing reviewable pull requests.
+The CLI commands above run **locally** in your terminal. But app modernization shouldn't be a one-off task — it should be a continuous part of your SDLC. This extension provides two additional ways to embed modernization into your workflow:
+
+### Custom Copilot Agent
+
+`gh appmod init` adds a [custom Copilot agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents) to your repository (`.github/agents/app-modernization.agent.md`). This lets you interact with the App Modernization MCP server **conversationally** in Copilot Chat — in VS Code, JetBrains, or on github.com:
+
+> `@app-modernization` assess this project's modernization posture
+
+The agent can assess, upgrade, migrate, and remediate Java applications — the same capabilities as the CLI, but through a chat interface.
+
+### Agentic Workflows (Continuous Modernization)
+
+[GitHub Agentic Workflows](https://github.github.com/gh-aw/) take this further — modernization runs **automatically on GitHub.com**, on a schedule or triggered by events, producing reviewable pull requests.
 
 ```bash
 gh appmod add-workflows
 ```
 
-This adds the following agentic workflows to your repository:
+This adds the following workflows to your repository:
 
-| Workflow | Trigger | Description |
-|----------|---------|-------------|
-| [`appmod-assess`](.github/workflows/appmod-assess.md) | Weekly schedule / manual | Assesses modernization posture, creates an issue with findings |
-| [`appmod-upgrade`](.github/workflows/appmod-upgrade.md) | Monthly schedule / manual | Upgrades Java version, framework, and dependencies via PR |
-| [`appmod-migrate`](.github/workflows/appmod-migrate.md) | Manual | Migrates services to Azure equivalents via PR |
+| Workflow | Trigger | Output |
+|----------|---------|--------|
+| [`appmod-assess`](.github/workflows/appmod-assess.md) | Weekly schedule / manual | GitHub issue with modernization findings |
+| [`appmod-upgrade`](.github/workflows/appmod-upgrade.md) | Monthly schedule / manual | PR with JDK, framework, and dependency upgrades |
+| [`appmod-migrate`](.github/workflows/appmod-migrate.md) | Manual | PR migrating services to Azure equivalents |
+
+All workflows run in a sandboxed container with read-only access. Changes are proposed through safe outputs (`create-pull-request`, `create-issue`) — the agent never pushes directly.
 
 📖 **[Agentic Workflows Proposal →](docs/agentic-workflows.md)**
 
