@@ -144,78 +144,49 @@ cmd_check() {
 }
 
 cmd_setup() {
-  for arg in "$@"; do
-    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
-      echo "Usage: gh appmod setup [options]"
-      echo ""
-      echo "Set up App Modernization for your environment and repository."
-      echo ""
-      echo "This command performs two steps:"
-      echo "  1. Configures the App Modernization MCP server for local Copilot CLI use"
-      echo "  2. Adds agentic workflow files to your repo for continuous modernization"
-      echo ""
-      echo "Options:"
-      echo "  --local-only    Only configure the local MCP server (skip workflows)"
-      echo "  --no-compile    Skip compiling agentic workflows with gh aw"
-      echo "  -h, --help      Show this help"
-      echo ""
-      echo "Agentic workflow files added (step 2):"
-      echo "  .github/workflows/shared/mcp/app-modernization.md  (MCP server config)"
-      echo "  .github/workflows/appmod-assess.md                 (weekly health check)"
-      echo "  .github/workflows/appmod-upgrade.md                (upgrade via PR)"
-      echo "  .github/workflows/appmod-migrate.md                (migration via PR)"
-      return 0
-    fi
-  done
-
-  local local_only=false
-  local skip_compile=false
-  for arg in "$@"; do
-    case "$arg" in
-      --local-only)  local_only=true ;;
-      --no-compile)  skip_compile=true ;;
-    esac
-  done
-
   print_header
   echo ""
-
-  # ── Step 1: Configure the local MCP server ──────────────────────────────
-
-  echo -e "${BOLD}Step 1: Configuring App Modernization MCP server...${NC}"
+  echo -e "${BOLD}Configuring App Modernization MCP server...${NC}"
   echo ""
 
+  # Ensure config directory exists
   if [ ! -d "$COPILOT_CONFIG_DIR" ]; then
     mkdir -p "$COPILOT_CONFIG_DIR"
     info "Created config directory: ${COPILOT_CONFIG_DIR}"
   fi
 
   if [ -f "$MCP_CONFIG_FILE" ]; then
+    # Already configured?
     if grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
       success "MCP server '${MCP_SERVER_NAME}' is already configured in ${MCP_CONFIG_FILE}"
-    else
-      if ! type -p node >/dev/null 2>&1; then
-        error "Node.js is required to safely merge JSON config. Install Node.js 22+ first."
-        exit 1
-      fi
-
-      local new_config
-      new_config=$(node -e "
-        const fs = require('fs');
-        const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
-        if (!config.mcpServers) config.mcpServers = {};
-        config.mcpServers['${MCP_SERVER_NAME}'] = {
-          type: 'local',
-          command: 'npx',
-          tools: ['*'],
-          args: ['-y', '${MCP_SERVER_PACKAGE}']
-        };
-        console.log(JSON.stringify(config, null, 2));
-      " "$MCP_CONFIG_FILE")
-      echo "$new_config" > "$MCP_CONFIG_FILE"
-      success "Added '${MCP_SERVER_NAME}' MCP server to ${MCP_CONFIG_FILE}"
+      echo ""
+      info "To reconfigure, remove the '${MCP_SERVER_NAME}' entry and run this command again."
+      return 0
     fi
+
+    # Merge into existing config using Node.js for safe JSON manipulation
+    if ! type -p node >/dev/null 2>&1; then
+      error "Node.js is required to safely merge JSON config. Install Node.js 22+ first."
+      exit 1
+    fi
+
+    local new_config
+    new_config=$(node -e "
+      const fs = require('fs');
+      const config = JSON.parse(fs.readFileSync(process.argv[1], 'utf8'));
+      if (!config.mcpServers) config.mcpServers = {};
+      config.mcpServers['${MCP_SERVER_NAME}'] = {
+        type: 'local',
+        command: 'npx',
+        tools: ['*'],
+        args: ['-y', '${MCP_SERVER_PACKAGE}']
+      };
+      console.log(JSON.stringify(config, null, 2));
+    " "$MCP_CONFIG_FILE")
+    echo "$new_config" > "$MCP_CONFIG_FILE"
+    success "Added '${MCP_SERVER_NAME}' MCP server to ${MCP_CONFIG_FILE}"
   else
+    # Create new config file
     cat > "$MCP_CONFIG_FILE" <<-MCPEOF
 {
   "mcpServers": {
@@ -237,40 +208,68 @@ MCPEOF
   fi
 
   echo ""
+  info "Verify with: copilot → /mcp show"
+  info "Or run:      gh appmod check"
+}
 
-  if [ "$local_only" = true ]; then
-    info "Skipping agentic workflows (--local-only)."
-    echo ""
-    info "Verify with: copilot → /mcp show"
-    info "Or run:      gh appmod check"
-    return 0
-  fi
+cmd_add_workflows() {
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod add-workflows [options]"
+      echo ""
+      echo "Add GitHub Agentic Workflows for continuous app modernization"
+      echo "to the current repository."
+      echo ""
+      echo "This command copies agentic workflow files into your repository's"
+      echo ".github/workflows/ directory and optionally compiles them."
+      echo ""
+      echo "Options:"
+      echo "  --no-compile    Skip compiling workflows with gh aw"
+      echo "  -h, --help      Show this help"
+      echo ""
+      echo "What gets added:"
+      echo "  .github/workflows/shared/mcp/app-modernization.md  (MCP server config)"
+      echo "  .github/workflows/appmod-assess.md                 (weekly health check)"
+      echo "  .github/workflows/appmod-upgrade.md                (upgrade via PR)"
+      echo "  .github/workflows/appmod-migrate.md                (migration via PR)"
+      return 0
+    fi
+  done
 
-  # ── Step 2: Add agentic workflow files to the repository ────────────────
+  local skip_compile=false
+  for arg in "$@"; do
+    if [ "$arg" = "--no-compile" ]; then
+      skip_compile=true
+    fi
+  done
 
-  echo -e "${BOLD}Step 2: Adding agentic workflows for continuous modernization...${NC}"
+  print_header
+  echo ""
+  echo -e "${BOLD}Adding agentic workflows for continuous app modernization...${NC}"
   echo ""
 
+  # Verify we're in a git repository
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    info "Not inside a Git repository — skipping agentic workflows."
-    echo ""
-    info "To enable continuous modernization, run 'gh appmod setup' from a Git repo."
-    return 0
+    error "Not inside a Git repository. Run this command from your project root."
+    exit 1
   fi
 
   local repo_root
   repo_root=$(git rev-parse --show-toplevel)
 
+  # Verify workflow source files exist in the extension
   if [ ! -d "$AW_WORKFLOWS_DIR" ]; then
     error "Agentic workflow files not found in extension at: ${AW_WORKFLOWS_DIR}"
     error "The extension installation may be incomplete."
     exit 1
   fi
 
+  # Create target directories
   local target_dir="${repo_root}/.github/workflows"
   local target_shared_dir="${target_dir}/shared/mcp"
   mkdir -p "$target_shared_dir"
 
+  # Copy workflow files
   local files_copied=0
   local files_skipped=0
 
@@ -309,10 +308,13 @@ MCPEOF
     return 0
   fi
 
-  if [ "$files_copied" -gt 0 ]; then
-    success "Copied ${files_copied} workflow file(s)"
-    echo ""
+  if [ "$files_copied" -eq 0 ]; then
+    error "No workflow files were copied."
+    exit 1
   fi
+
+  success "Copied ${files_copied} workflow file(s)"
+  echo ""
 
   # Attempt to compile with gh aw
   if [ "$skip_compile" = true ]; then
@@ -520,11 +522,12 @@ cmd_help() {
   echo -e "${BOLD}Usage:${NC} gh appmod <command> [options] [prompt]"
   echo ""
   echo -e "${BOLD}Commands:${NC}"
-  echo "  check      Check prerequisites (Node.js, npm, Copilot CLI)"
-  echo "  setup      Set up local MCP server and agentic workflows"
-  echo "  upgrade    Upgrade your Java application (version, framework)"
-  echo "  migrate    Migrate your Java application to Azure"
-  echo "  deploy     Deploy your Java application to Azure"
+  echo "  check           Check prerequisites (Node.js, npm, Copilot CLI)"
+  echo "  setup           Configure the App Modernization MCP server"
+  echo "  add-workflows   Add agentic workflows for continuous modernization"
+  echo "  upgrade         Upgrade your Java application (version, framework)"
+  echo "  migrate         Migrate your Java application to Azure"
+  echo "  deploy          Deploy your Java application to Azure"
   echo ""
   echo -e "${BOLD}Options:${NC}"
   echo "  --yolo          Pass --yolo to copilot (enable all permissions)"
@@ -533,9 +536,12 @@ cmd_help() {
   echo "  -v, --version   Show version"
   echo ""
   echo -e "${BOLD}Getting started:${NC}"
-  echo "  1. gh appmod check        # Verify prerequisites"
-  echo "  2. gh appmod setup         # Configure MCP server + agentic workflows"
-  echo "  3. gh appmod upgrade       # Start upgrading!"
+  echo "  1. gh appmod check           # Verify prerequisites"
+  echo "  2. gh appmod setup            # Configure MCP server"
+  echo "  3. gh appmod upgrade          # Start upgrading!"
+  echo ""
+  echo -e "${BOLD}Continuous modernization:${NC}"
+  echo "  gh appmod add-workflows       # Add agentic workflows to your repo"
   echo ""
   echo -e "${BOLD}Examples:${NC}"
   echo "  gh appmod upgrade \"Upgrade to JDK 21 and Spring Boot 3.2\""
@@ -550,9 +556,10 @@ cmd_help() {
 # ─── Main ────────────────────────────────────────────────────────────────────
 
 case "${1:-}" in
-  check)   shift; cmd_check "$@" ;;
-  setup)   shift; cmd_setup "$@" ;;
-  upgrade) shift; cmd_upgrade "$@" ;;
+  check)          shift; cmd_check "$@" ;;
+  setup)          shift; cmd_setup "$@" ;;
+  add-workflows)  shift; cmd_add_workflows "$@" ;;
+  upgrade)        shift; cmd_upgrade "$@" ;;
   migrate) shift; cmd_migrate "$@" ;;
   deploy)  shift; cmd_deploy "$@" ;;
   -v|--version) echo "gh-appmod $VERSION" ;;
