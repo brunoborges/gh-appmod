@@ -14,7 +14,7 @@ A [GitHub CLI](https://cli.github.com/) extension for [GitHub Copilot App Modern
 ### 1. Install
 
 ```bash
-gh extension install <owner>/gh-appmod
+gh extension install brunoborges/gh-appmod
 ```
 
 ### 2. Check prerequisites
