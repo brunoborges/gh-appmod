@@ -478,7 +478,7 @@ cmd_upgrade() {
   parse_action_args "$@"
 
   if [ -z "$PROMPT" ]; then
-    PROMPT="Upgrade this Java project to the latest Java LTS version and latest compatible framework versions. Analyze the project first, then generate an upgrade plan, perform code remediation, build the project, and check for vulnerabilities."
+    PROMPT="Using the App Modernization MCP server tools, upgrade this Java project to the latest Java LTS version and latest compatible framework versions. Analyze the project first to determine current versions and dependencies, then generate an upgrade plan, apply code remediation for breaking changes and deprecated APIs, validate the build, and check for vulnerabilities."
   fi
 
   launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
@@ -510,7 +510,7 @@ cmd_migrate() {
   parse_action_args "$@"
 
   if [ -z "$PROMPT" ]; then
-    PROMPT="Analyze this Java project and help me migrate it to Azure. Identify the current dependencies and services, suggest appropriate Azure equivalents, and perform the migration step by step."
+    PROMPT="Using the App Modernization MCP server tools, analyze this Java project and help me migrate it to Azure. Scan the project to identify current dependencies and services, match them against predefined migration tasks (e.g., S3 to Azure Blob Storage, RabbitMQ to Azure Service Bus, Oracle to PostgreSQL, secrets to Azure Key Vault), apply the migration changes, and validate the build."
   fi
 
   launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
@@ -542,7 +542,7 @@ cmd_deploy() {
   parse_action_args "$@"
 
   if [ -z "$PROMPT" ]; then
-    PROMPT="Deploy this Java application to Azure. Analyze the project, recommend the best Azure service for deployment, and guide me through the deployment process."
+    PROMPT="Using the App Modernization MCP server tools, analyze this Java project and help me deploy it to Azure. Assess the project structure and dependencies, recommend the best Azure service for deployment (e.g., Azure App Service, Azure Container Apps, Azure Kubernetes Service), and guide me through the deployment process step by step."
   fi
 
   launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
