@@ -60,7 +60,7 @@ Checking prerequisites...
 ✓ npm v10.x.x
 ✓ Copilot CLI GitHub Copilot CLI x.x.x
 
-⚠ MCP server 'app-modernization' not configured. Run 'gh appmod setup' to add it.
+⚠ MCP server 'app-modernization' not configured. Run 'gh appmod init' to add it.
 
 ✓ All prerequisites met!
 ```
@@ -70,12 +70,12 @@ Checking prerequisites...
 The App Modernization MCP server powers the upgrade, migration, and deployment capabilities. Set it up with:
 
 ```bash
-gh appmod setup
+gh appmod init
 ```
 
 This adds the `app-modernization` MCP server to your Copilot CLI configuration at `~/.copilot/mcp-config.json`. This is a one-time setup — the server will be available in all future Copilot CLI sessions.
 
-> **Tip:** If you skip this step, `gh appmod` will still work — it automatically injects the MCP server configuration for each session. Running `setup` just makes it permanent.
+> **Tip:** If you skip this step, `gh appmod` will still work — it automatically injects the MCP server configuration for each session. Running `init` just makes it permanent.
 
 ## Step 5: Start Modernizing
 

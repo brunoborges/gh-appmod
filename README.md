@@ -26,7 +26,7 @@ gh appmod check
 ### 3. Configure the MCP server (one-time)
 
 ```bash
-gh appmod setup
+gh appmod init
 ```
 
 ### 4. Modernize your Java app
@@ -55,7 +55,7 @@ Each command launches Copilot CLI in interactive mode — you collaborate with C
 | Command | Description |
 |---------|-------------|
 | `gh appmod check` | Verify prerequisites (Node.js, npm, Copilot CLI) |
-| `gh appmod setup` | Configure MCP server and add custom Copilot agent |
+| `gh appmod init` | Configure MCP server and add custom Copilot agent |
 | `gh appmod add-workflows` | Add agentic workflows for continuous modernization |
 | `gh appmod upgrade [prompt]` | Upgrade Java version and framework |
 | `gh appmod migrate [prompt]` | Migrate services to Azure |

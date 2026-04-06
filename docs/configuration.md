@@ -23,10 +23,10 @@ export COPILOT_HOME=/custom/path
 
 ### Automatic Setup
 
-Run `gh appmod setup` to automatically configure the MCP server:
+Run `gh appmod init` to automatically configure the MCP server:
 
 ```bash
-gh appmod setup
+gh appmod init
 ```
 
 This adds the following entry to your `mcp-config.json`:
@@ -62,7 +62,7 @@ copilot
 
 ### Session-Only Configuration
 
-If you don't run `gh appmod setup`, the extension automatically injects the MCP server configuration for each session using Copilot CLI's `--additional-mcp-config` flag. This means:
+If you don't run `gh appmod init`, the extension automatically injects the MCP server configuration for each session using Copilot CLI's `--additional-mcp-config` flag. This means:
 
 - The MCP server is available for that session only
 - No permanent changes are made to your configuration

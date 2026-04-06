@@ -40,14 +40,14 @@ gh appmod check
 
 ---
 
-## `gh appmod setup`
+## `gh appmod init`
 
 Configure the App Modernization MCP server and add the custom Copilot agent to your repository.
 
 ### Usage
 
 ```bash
-gh appmod setup
+gh appmod init
 ```
 
 ### Behavior

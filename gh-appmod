@@ -129,10 +129,10 @@ cmd_check() {
     if grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
       success "MCP server '${MCP_SERVER_NAME}' is configured in ${MCP_CONFIG_FILE}"
     else
-      warn "MCP server '${MCP_SERVER_NAME}' not configured. Run 'gh appmod setup' to add it."
+      warn "MCP server '${MCP_SERVER_NAME}' not configured. Run 'gh appmod init' to add it."
     fi
   else
-    warn "No MCP config found at ${MCP_CONFIG_FILE}. Run 'gh appmod setup' to create it."
+    warn "No MCP config found at ${MCP_CONFIG_FILE}. Run 'gh appmod init' to create it."
   fi
 
   echo ""
@@ -144,7 +144,7 @@ cmd_check() {
   fi
 }
 
-cmd_setup() {
+cmd_init() {
   print_header
   echo ""
   echo -e "${BOLD}Step 1: Configuring App Modernization MCP server...${NC}"
@@ -214,7 +214,7 @@ MCPEOF
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     info "Not inside a Git repository — skipping agent setup."
     echo ""
-    info "Run 'gh appmod setup' from a Git repo to add the custom agent."
+    info "Run 'gh appmod init' from a Git repo to add the custom agent."
     return 0
   fi
 
@@ -406,7 +406,7 @@ launch_copilot() {
   # Inject MCP server inline if not already in the persistent config
   if ! grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
     info "MCP server not in persistent config; injecting for this session."
-    info "Run 'gh appmod setup' to make it permanent."
+    info "Run 'gh appmod init' to make it permanent."
     echo ""
     args+=(--additional-mcp-config "$MCP_CONFIG_JSON")
   fi
@@ -555,7 +555,7 @@ cmd_help() {
   echo ""
   echo -e "${BOLD}Commands:${NC}"
   echo "  check           Check prerequisites (Node.js, npm, Copilot CLI)"
-  echo "  setup           Configure the App Modernization MCP server"
+  echo "  init            Configure MCP server and add custom Copilot agent"
   echo "  add-workflows   Add agentic workflows for continuous modernization"
   echo "  upgrade         Upgrade your Java application (version, framework)"
   echo "  migrate         Migrate your Java application to Azure"
@@ -569,7 +569,7 @@ cmd_help() {
   echo ""
   echo -e "${BOLD}Getting started:${NC}"
   echo "  1. gh appmod check           # Verify prerequisites"
-  echo "  2. gh appmod setup            # Configure MCP server"
+  echo "  2. gh appmod init             # Configure MCP server + agent"
   echo "  3. gh appmod upgrade          # Start upgrading!"
   echo ""
   echo -e "${BOLD}Continuous modernization:${NC}"
@@ -589,7 +589,7 @@ cmd_help() {
 
 case "${1:-}" in
   check)          shift; cmd_check "$@" ;;
-  setup)          shift; cmd_setup "$@" ;;
+  init)           shift; cmd_init "$@" ;;
   add-workflows)  shift; cmd_add_workflows "$@" ;;
   upgrade)        shift; cmd_upgrade "$@" ;;
   migrate) shift; cmd_migrate "$@" ;;

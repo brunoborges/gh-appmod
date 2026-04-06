@@ -38,9 +38,9 @@ Install the GitHub CLI:
 - **Windows:** `winget install GitHub.cli`
 - **Linux:** See [installation instructions](https://github.com/cli/cli#installation)
 
-## Setup Issues
+## Init Issues
 
-### `gh appmod setup` says "already configured" but MCP server doesn't work
+### `gh appmod init` says "already configured" but MCP server doesn't work
 
 The MCP server entry might be in your config but malformed. Check the config:
 
@@ -63,7 +63,7 @@ Verify the `app-modernization` entry looks like:
 }
 ```
 
-If it's malformed, remove the entry and run `gh appmod setup` again.
+If it's malformed, remove the entry and run `gh appmod init` again.
 
 ### Custom `COPILOT_HOME` location
 
@@ -109,7 +109,7 @@ Verify the MCP server is loaded:
 2. Run `/mcp show` to see configured MCP servers
 3. The `app-modernization` server should be listed
 
-If not, run `gh appmod setup` and try again.
+If not, run `gh appmod init` and try again.
 
 ### "Permission denied" errors
 
