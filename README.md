@@ -55,7 +55,7 @@ Each command launches Copilot CLI in interactive mode — you collaborate with C
 | Command | Description |
 |---------|-------------|
 | `gh appmod check` | Verify prerequisites (Node.js, npm, Copilot CLI) |
-| `gh appmod setup` | Configure the App Modernization MCP server |
+| `gh appmod setup` | Configure MCP server and add custom Copilot agent |
 | `gh appmod add-workflows` | Add agentic workflows for continuous modernization |
 | `gh appmod upgrade [prompt]` | Upgrade Java version and framework |
 | `gh appmod migrate [prompt]` | Migrate services to Azure |
@@ -81,7 +81,7 @@ Turn app modernization into a continuous SDLC practice — not a one-off task. U
 gh appmod add-workflows
 ```
 
-This adds a **custom Copilot agent** (`.github/agents/app-modernization.agent.md`) for interactive use in Copilot Chat, plus the following agentic workflows:
+This adds the following agentic workflows to your repository:
 
 | Workflow | Trigger | Description |
 |----------|---------|-------------|

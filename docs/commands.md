@@ -42,7 +42,7 @@ gh appmod check
 
 ## `gh appmod setup`
 
-Configure the App Modernization MCP server in your Copilot CLI configuration.
+Configure the App Modernization MCP server and add the custom Copilot agent to your repository.
 
 ### Usage
 
@@ -52,10 +52,19 @@ gh appmod setup
 
 ### Behavior
 
+**Step 1: MCP Server Configuration**
+
 - If `~/.copilot/mcp-config.json` doesn't exist, creates it with the `app-modernization` server
 - If the file exists but doesn't have the server, merges the entry into the existing config (preserving other MCP servers)
-- If already configured, reports success and exits
+- If already configured, reports success and continues
 - Uses Node.js for safe JSON manipulation when merging
+
+**Step 2: Custom Copilot Agent**
+
+- If inside a Git repository, copies `.github/agents/app-modernization.agent.md` into the repo
+- The agent enables interactive modernization in Copilot Chat (VS Code, JetBrains, github.com)
+- Skips if the agent file already exists (safe to re-run)
+- Skips if not inside a Git repository
 
 ### Configuration Added
 
@@ -73,6 +82,12 @@ The following entry is added to `~/.copilot/mcp-config.json`:
   }
 }
 ```
+
+### Files Added
+
+| File | Description |
+|------|-------------|
+| `.github/agents/app-modernization.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
 
 ### Environment Variables
 
@@ -111,7 +126,6 @@ gh appmod add-workflows [options]
 
 | File | Description |
 |------|-------------|
-| `.github/agents/app-modernization.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
 | `.github/workflows/shared/mcp/app-modernization.md` | Shared MCP server config for the App Modernization server |
 | `.github/workflows/appmod-assess.md` | Weekly assessment — reports modernization posture as a GitHub issue |
 | `.github/workflows/appmod-upgrade.md` | Upgrade workflow — produces PRs with JDK/framework/dependency upgrades |

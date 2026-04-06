@@ -171,7 +171,7 @@ This copies the agentic workflow files into `.github/workflows/` and compiles th
 ### 3. Commit and push
 
 ```bash
-git add .github/agents/ .github/workflows/
+git add .github/workflows/
 git commit -m "Add continuous app modernization workflows"
 git push
 ```
