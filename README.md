@@ -92,6 +92,20 @@ A [custom Copilot agent](https://docs.github.com/en/copilot/how-tos/use-copilot-
 - [Node.js](https://nodejs.org/) 22+ and [npm](https://www.npmjs.com/) 10+
 - A [GitHub Copilot subscription](https://github.com/features/copilot/plans) (Pro, Pro+, Business, or Enterprise)
 - [`gh-aw` extension](https://github.github.com/gh-aw/) (for compiling agentic workflows)
+- [Modernize CLI](https://github.com/microsoft/modernize-cli) (for one-off upgrade/migrate/deploy operations)
+
+### Installing the Modernize CLI
+
+```bash
+# macOS / Linux
+brew tap microsoft/modernize https://github.com/microsoft/modernize-cli
+brew install modernize
+
+# Windows
+winget install GitHub.Copilot.modernization.agent
+```
+
+📖 **[Modernize CLI Quickstart →](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/quickstart)**
 
 ## Documentation
 

@@ -11,10 +11,26 @@ Before using `gh appmod`, make sure you have the following installed:
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Any recent version | [Installation guide](https://github.com/cli/cli#installation) |
 | [Node.js](https://nodejs.org/) | 22+ | [Download](https://nodejs.org/) |
 | [npm](https://www.npmjs.com/) | 10+ | Bundled with Node.js |
+| [Modernize CLI](https://github.com/microsoft/modernize-cli) | Latest | See below |
 
 You also need a [GitHub Copilot subscription](https://github.com/features/copilot/plans) (Pro, Pro+, Business, or Enterprise).
 
 > **Note:** If you receive Copilot through an organization, the **Copilot CLI policy** must be enabled in your organization's settings.
+
+### Installing the Modernize CLI
+
+The [Modernize CLI](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/overview) handles the actual upgrade, migrate, and deploy operations. Install it with:
+
+```bash
+# macOS / Linux
+brew tap microsoft/modernize https://github.com/microsoft/modernize-cli
+brew install modernize
+
+# Windows
+winget install GitHub.Copilot.modernization.agent
+```
+
+📖 **[Modernize CLI Quickstart →](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/quickstart)**
 
 ## Step 2: Install the Extension
 
