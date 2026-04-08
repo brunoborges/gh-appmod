@@ -1,6 +1,6 @@
 # Getting Started
 
-This guide walks you through installing and using `gh appmod` for the first time.
+This guide walks you through installing and setting up `gh appmod` for the first time. This extension configures your environment and repository for Java app modernization — the actual upgrade, migrate, and deploy operations are handled by the [Modernize CLI](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/overview).
 
 ## Step 1: Install Prerequisites
 
@@ -9,7 +9,6 @@ Before using `gh appmod`, make sure you have the following installed:
 | Tool | Minimum Version | Install |
 |------|----------------|---------|
 | [GitHub CLI](https://cli.github.com/) (`gh`) | Any recent version | [Installation guide](https://github.com/cli/cli#installation) |
-| [GitHub Copilot CLI](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli) (`copilot`) | Latest | [Installation guide](https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli) |
 | [Node.js](https://nodejs.org/) | 22+ | [Download](https://nodejs.org/) |
 | [npm](https://www.npmjs.com/) | 10+ | Bundled with Node.js |
 
@@ -22,7 +21,7 @@ You also need a [GitHub Copilot subscription](https://github.com/features/copilo
 Install `gh appmod` from GitHub:
 
 ```bash
-gh extension install <owner>/gh-appmod
+gh extension install brunoborges/gh-appmod
 ```
 
 Or, to install from a local clone:
@@ -58,84 +57,55 @@ Checking prerequisites...
 ✓ GitHub CLI (gh version 2.x.x)
 ✓ Node.js v22.x.x
 ✓ npm v10.x.x
-✓ Copilot CLI GitHub Copilot CLI x.x.x
 
 ⚠ MCP server 'app-modernization' not configured. Run 'gh appmod init' to add it.
 
 ✓ All prerequisites met!
 ```
 
-## Step 4: Configure the MCP Server
+## Step 4: Configure MCP Server and Agent
 
-The App Modernization MCP server powers the upgrade, migration, and deployment capabilities. Set it up with:
+Set up the MCP server and custom Copilot agent:
 
 ```bash
 gh appmod init
 ```
 
-This adds the `app-modernization` MCP server to your Copilot CLI configuration at `~/.copilot/mcp-config.json`. This is a one-time setup — the server will be available in all future Copilot CLI sessions.
+This does two things:
 
-> **Tip:** If you skip this step, `gh appmod` will still work — it automatically injects the MCP server configuration for each session. Running `init` just makes it permanent.
+1. **MCP server** — Adds the `app-modernization` MCP server to `~/.copilot/mcp-config.json` (one-time, global)
+2. **Custom agent** — Adds `.github/agents/appmod.agent.md` to your repo for Copilot Chat integration
 
-## Step 5: Start Modernizing
+## Step 5: Add Modernization Skills
 
-Navigate to your Java project directory, then run one of the modernization commands:
-
-### Upgrade your Java application
-
-```bash
-# Use the default upgrade prompt
-gh appmod upgrade
-
-# Or provide a specific prompt
-gh appmod upgrade "Upgrade to JDK 21 and Spring Boot 3.2"
-```
-
-### Migrate to Azure
+Install the bundled skills into your repository:
 
 ```bash
-# Use the default migration prompt
-gh appmod migrate
-
-# Or describe a specific migration
-gh appmod migrate "Migrate from S3 to Azure Blob Storage"
+gh appmod add-skills
 ```
 
-### Deploy to Azure
+This copies skill files into `.github/skills/` following the [agentskills.io](https://agentskills.io/) specification. Skills include Java version-specific upgrade instructions (8→11, 11→17, 17→21, 21→25), migration tasks, assessment, and deployment guidance.
+
+These skills are automatically detected by the Modernize CLI when creating plans.
+
+## Step 6: Start Modernizing
+
+Use the [Modernize CLI](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/overview) to run modernization operations:
 
 ```bash
-# Use the default deployment prompt
-gh appmod deploy
-
-# Or specify a target
-gh appmod deploy "Deploy to Azure App Service"
+modernize assess
+modernize upgrade
+modernize migrate
+modernize deploy
 ```
 
-Each command launches the GitHub Copilot CLI in interactive mode with the App Modernization MCP server, so you can collaborate with Copilot on the modernization task step by step.
+Or interact with the custom Copilot agent in Copilot Chat (VS Code, JetBrains, github.com):
 
-## What Happens Next
-
-When a modernization command runs, Copilot CLI will:
-
-1. **Analyze your project** — Scan the codebase to understand the current state
-2. **Generate a plan** — Create a step-by-step modernization plan
-3. **Execute changes** — Perform code modifications with your approval
-4. **Validate** — Build the project and check for issues
-5. **Summarize** — Show a summary of what was changed
-
-You remain in control throughout — Copilot asks for approval before modifying files or running commands.
-
-> **Tip:** Use `--yolo` to auto-approve all actions if you're comfortable:
-> ```bash
-> gh appmod upgrade --yolo "Upgrade to JDK 21"
-> ```
+> `@appmod` assess this project's modernization posture
 
 ## Next Steps
 
 - [Command Reference](commands.md) — Full details on every command and option
-- [Upgrade Guide](upgrade.md) — Deep dive into Java upgrade scenarios
-- [Migration Guide](migration.md) — Detailed migration scenarios and predefined tasks
-- [Deployment Guide](deployment.md) — Deploying to Azure services
-- [Agentic Workflows](agentic-workflows.md) — Enable continuous modernization via GitHub Agentic Workflows
 - [Configuration](configuration.md) — MCP server and Copilot CLI configuration
+- [Agentic Workflows](agentic-workflows.md) — Enable continuous modernization via GitHub Agentic Workflows
 - [Troubleshooting](troubleshooting.md) — Common issues and solutions

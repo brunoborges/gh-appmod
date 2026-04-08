@@ -12,7 +12,6 @@ VERSION="0.1.0"
 # MCP server configuration
 MCP_SERVER_NAME="app-modernization"
 MCP_SERVER_PACKAGE="@microsoft/github-copilot-app-modernization-mcp-server"
-MCP_CONFIG_JSON='{"mcpServers":{"app-modernization":{"type":"local","command":"npx","tools":["*"],"args":["-y","@microsoft/github-copilot-app-modernization-mcp-server"]}}}'
 
 COPILOT_CONFIG_DIR="${COPILOT_HOME:-$HOME/.copilot}"
 MCP_CONFIG_FILE="${COPILOT_CONFIG_DIR}/mcp-config.json"
@@ -108,6 +107,9 @@ EXTENSION_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Agentic workflow source files bundled with this extension
 AW_WORKFLOWS_DIR="${EXTENSION_DIR}/.github/workflows"
 AW_AGENTS_DIR="${EXTENSION_DIR}/.github/agents"
+
+# Skills source directory bundled with this extension
+SKILLS_SRC_DIR="${EXTENSION_DIR}/skills"
 
 # ─── Commands ────────────────────────────────────────────────────────────────
 
@@ -389,197 +391,133 @@ cmd_add_workflows() {
   info "Learn more: https://aka.ms/ghcp-appmod"
 }
 
-# Launch copilot with the MCP server and a prompt
-launch_copilot() {
-  local prompt="$1"
-  shift
-  local extra_args=("$@")
+cmd_add_skills() {
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod add-skills [options]"
+      echo ""
+      echo "Add custom modernization skills to your repository."
+      echo ""
+      echo "Copies skill definitions from the extension into .github/skills/"
+      echo "following the agentskills.io specification. These skills are"
+      echo "automatically detected by the Modernize CLI when creating plans."
+      echo ""
+      echo "Options:"
+      echo "  -h, --help      Show this help"
+      echo ""
+      echo "Skills added:"
+      echo "  assess           Modernization posture assessment"
+      echo "  upgrade          General Java upgrade guidance"
+      echo "  migrate          Service migration to Azure"
+      echo "  deploy           Deployment to Azure services"
+      echo "  java-8-to-11     JDK 8 to 11 upgrade instructions"
+      echo "  java-11-to-17    JDK 11 to 17 upgrade instructions"
+      echo "  java-17-to-21    JDK 17 to 21 upgrade instructions"
+      echo "  java-21-to-25    JDK 21 to 25 upgrade instructions"
+      return 0
+    fi
+  done
 
-  if ! type -p copilot >/dev/null 2>&1; then
-    error "GitHub Copilot CLI is not installed."
-    echo "  Install: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli" >&2
+  print_header
+  echo ""
+  echo -e "${BOLD}Adding modernization skills...${NC}"
+  echo ""
+
+  # Verify we're in a git repository
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    error "Not inside a Git repository. Run this command from your project root."
     exit 1
   fi
 
-  local args=()
+  # Verify skill source files exist in the extension
+  if [ ! -d "$SKILLS_SRC_DIR" ]; then
+    error "Skills directory not found in extension at: ${SKILLS_SRC_DIR}"
+    error "The extension installation may be incomplete."
+    exit 1
+  fi
 
-  # Inject MCP server inline if not already in the persistent config
-  if ! grep -q "$MCP_SERVER_NAME" "$MCP_CONFIG_FILE" 2>/dev/null; then
-    info "MCP server not in persistent config; injecting for this session."
-    info "Run 'gh appmod init' to make it permanent."
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel)
+  local target_dir="${repo_root}/.github/skills"
+
+  local skills_copied=0
+  local skills_skipped=0
+
+  for skill_src in "$SKILLS_SRC_DIR"/*/; do
+    local skill_name
+    skill_name=$(basename "$skill_src")
+    local skill_dst="${target_dir}/${skill_name}"
+
+    if [ -d "$skill_dst" ]; then
+      warn "Skill '${skill_name}' already exists at .github/skills/${skill_name} (skipping)"
+      skills_skipped=$((skills_skipped + 1))
+      continue
+    fi
+
+    mkdir -p "$skill_dst"
+    cp -r "$skill_src"* "$skill_dst/"
+    success "Added .github/skills/${skill_name}/"
+    skills_copied=$((skills_copied + 1))
+  done
+
+  echo ""
+
+  if [ "$skills_copied" -eq 0 ] && [ "$skills_skipped" -gt 0 ]; then
+    info "All skills already exist. Nothing to do."
     echo ""
-    args+=(--additional-mcp-config "$MCP_CONFIG_JSON")
+    info "To re-add, remove the existing skill folders and run this command again."
+    return 0
   fi
 
-  # Pass through extra args (--yolo, --model, etc.)
-  if [ ${#extra_args[@]} -gt 0 ]; then
-    args+=("${extra_args[@]}")
+  if [ "$skills_copied" -eq 0 ]; then
+    error "No skill files were copied."
+    exit 1
   fi
 
-  # Launch interactive mode with the prompt
-  args+=(-i "$prompt")
-
-  exec copilot "${args[@]}"
-}
-
-# Parse common flags for upgrade/migrate/deploy commands
-parse_action_args() {
-  PROMPT=""
-  EXTRA_ARGS=()
-
-  while [ $# -gt 0 ]; do
-    case "$1" in
-      --yolo|--allow-all|--allow-all-tools|--allow-all-paths|--allow-all-urls|--autopilot)
-        EXTRA_ARGS+=("$1")
-        ;;
-      --model|--effort|--reasoning-effort|--agent|--add-dir)
-        EXTRA_ARGS+=("$1" "$2")
-        shift
-        ;;
-      -*)
-        EXTRA_ARGS+=("$1")
-        ;;
-      *)
-        if [ -z "$PROMPT" ]; then
-          PROMPT="$1"
-        else
-          PROMPT="$PROMPT $1"
-        fi
-        ;;
-    esac
-    shift
-  done
-}
-
-cmd_upgrade() {
-  # Handle --help before parsing
-  for arg in "$@"; do
-    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
-      echo "Usage: gh appmod upgrade [options] [prompt]"
-      echo ""
-      echo "Launch Copilot CLI to upgrade your Java application."
-      echo ""
-      echo "If no prompt is provided, a default upgrade prompt is used."
-      echo "Any extra flags are passed through to the copilot CLI."
-      echo ""
-      echo "Options:"
-      echo "  --yolo          Enable all permissions (no confirmations)"
-      echo "  --model <name>  Use a specific AI model"
-      echo "  -h, --help      Show this help"
-      echo ""
-      echo "Examples:"
-      echo "  gh appmod upgrade"
-      echo "  gh appmod upgrade \"Upgrade to JDK 21 and Spring Boot 3.2\""
-      echo "  gh appmod upgrade --yolo \"Upgrade to latest Java LTS\""
-      return 0
-    fi
-  done
-
-  parse_action_args "$@"
-
-  if [ -z "$PROMPT" ]; then
-    PROMPT="Using the App Modernization MCP server tools, upgrade this Java project to the latest Java LTS version and latest compatible framework versions. Analyze the project first to determine current versions and dependencies, then generate an upgrade plan, apply code remediation for breaking changes and deprecated APIs, validate the build, and check for vulnerabilities."
-  fi
-
-  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
-}
-
-cmd_migrate() {
-  for arg in "$@"; do
-    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
-      echo "Usage: gh appmod migrate [options] [prompt]"
-      echo ""
-      echo "Launch Copilot CLI to migrate your Java application to Azure."
-      echo ""
-      echo "If no prompt is provided, a default migration prompt is used."
-      echo "Any extra flags are passed through to the copilot CLI."
-      echo ""
-      echo "Options:"
-      echo "  --yolo          Enable all permissions (no confirmations)"
-      echo "  --model <name>  Use a specific AI model"
-      echo "  -h, --help      Show this help"
-      echo ""
-      echo "Examples:"
-      echo "  gh appmod migrate"
-      echo "  gh appmod migrate \"Migrate from S3 to Azure Blob Storage\""
-      echo "  gh appmod migrate \"Migrate from Oracle DB to Azure PostgreSQL\""
-      return 0
-    fi
-  done
-
-  parse_action_args "$@"
-
-  if [ -z "$PROMPT" ]; then
-    PROMPT="Using the App Modernization MCP server tools, analyze this Java project and help me migrate it to Azure. Scan the project to identify current dependencies and services, match them against predefined migration tasks (e.g., S3 to Azure Blob Storage, RabbitMQ to Azure Service Bus, Oracle to PostgreSQL, secrets to Azure Key Vault), apply the migration changes, and validate the build."
-  fi
-
-  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
-}
-
-cmd_deploy() {
-  for arg in "$@"; do
-    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
-      echo "Usage: gh appmod deploy [options] [prompt]"
-      echo ""
-      echo "Launch Copilot CLI to deploy your Java application to Azure."
-      echo ""
-      echo "If no prompt is provided, a default deployment prompt is used."
-      echo "Any extra flags are passed through to the copilot CLI."
-      echo ""
-      echo "Options:"
-      echo "  --yolo          Enable all permissions (no confirmations)"
-      echo "  --model <name>  Use a specific AI model"
-      echo "  -h, --help      Show this help"
-      echo ""
-      echo "Examples:"
-      echo "  gh appmod deploy"
-      echo "  gh appmod deploy \"Deploy this application to Azure App Service\""
-      echo "  gh appmod deploy \"Deploy to Azure Kubernetes Service\""
-      return 0
-    fi
-  done
-
-  parse_action_args "$@"
-
-  if [ -z "$PROMPT" ]; then
-    PROMPT="Using the App Modernization MCP server tools, analyze this Java project and help me deploy it to Azure. Assess the project structure and dependencies, recommend the best Azure service for deployment (e.g., Azure App Service, Azure Container Apps, Azure Kubernetes Service), and guide me through the deployment process step by step."
-  fi
-
-  launch_copilot "$PROMPT" "${EXTRA_ARGS[@]}"
+  success "Added ${skills_copied} skill(s) to .github/skills/"
+  echo ""
+  echo -e "${BOLD}Next steps:${NC}"
+  echo "  1. Review the skills in .github/skills/"
+  echo "  2. Customize SKILL.md files for your project as needed"
+  echo "  3. Commit and push:"
+  echo ""
+  echo "     git add .github/skills/"
+  echo "     git commit -m \"Add app modernization skills\""
+  echo "     git push"
+  echo ""
+  info "The Modernize CLI will automatically detect these skills when creating plans."
+  info "Learn more: https://aka.ms/ghcp-appmod"
 }
 
 cmd_help() {
   print_header
   echo ""
-  echo -e "${BOLD}Usage:${NC} gh appmod <command> [options] [prompt]"
+  echo -e "${BOLD}Usage:${NC} gh appmod <command> [options]"
   echo ""
-  echo -e "${BOLD}Commands:${NC}"
+  echo -e "${BOLD}Setup:${NC}"
   echo "  check           Check prerequisites (Node.js, npm, Copilot CLI)"
   echo "  init            Configure MCP server and add custom Copilot agent"
+  echo ""
+  echo -e "${BOLD}Repository setup:${NC}"
+  echo "  add-skills      Add custom modernization skills to .github/skills/"
   echo "  add-workflows   Add agentic workflows for continuous modernization"
-  echo "  upgrade         Upgrade your Java application (version, framework)"
-  echo "  migrate         Migrate your Java application to Azure"
-  echo "  deploy          Deploy your Java application to Azure"
   echo ""
   echo -e "${BOLD}Options:${NC}"
-  echo "  --yolo          Pass --yolo to copilot (enable all permissions)"
-  echo "  --model <name>  Pass --model to copilot (choose AI model)"
   echo "  -h, --help      Show help for a command"
   echo "  -v, --version   Show version"
   echo ""
   echo -e "${BOLD}Getting started:${NC}"
   echo "  1. gh appmod check           # Verify prerequisites"
   echo "  2. gh appmod init             # Configure MCP server + agent"
-  echo "  3. gh appmod upgrade          # Start upgrading!"
+  echo "  3. gh appmod add-skills       # Add skills to your repo"
+  echo "  4. modernize upgrade          # Upgrade with Modernize CLI"
   echo ""
   echo -e "${BOLD}Continuous modernization:${NC}"
   echo "  gh appmod add-workflows       # Add agentic workflows to your repo"
   echo ""
-  echo -e "${BOLD}Examples:${NC}"
-  echo "  gh appmod upgrade \"Upgrade to JDK 21 and Spring Boot 3.2\""
-  echo "  gh appmod migrate \"Migrate from S3 to Azure Blob Storage\""
-  echo "  gh appmod deploy \"Deploy to Azure App Service\""
-  echo "  gh appmod upgrade --yolo   # Upgrade with auto-approval"
+  echo -e "${BOLD}Modernize CLI:${NC}"
+  echo "  For upgrade, migrate, and deploy operations, use the Modernize CLI:"
+  echo "  https://learn.microsoft.com/azure/developer/github-copilot-app-modernization"
   echo ""
   echo -e "${BOLD}Learn more:${NC}"
   echo "  https://aka.ms/ghcp-appmod"
@@ -590,10 +528,8 @@ cmd_help() {
 case "${1:-}" in
   check)          shift; cmd_check "$@" ;;
   init)           shift; cmd_init "$@" ;;
+  add-skills)     shift; cmd_add_skills "$@" ;;
   add-workflows)  shift; cmd_add_workflows "$@" ;;
-  upgrade)        shift; cmd_upgrade "$@" ;;
-  migrate) shift; cmd_migrate "$@" ;;
-  deploy)  shift; cmd_deploy "$@" ;;
   -v|--version) echo "gh-appmod $VERSION" ;;
   -h|--help|"") cmd_help ;;
   *)

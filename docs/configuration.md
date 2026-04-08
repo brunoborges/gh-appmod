@@ -1,10 +1,10 @@
 # Configuration
 
-Details on how `gh appmod` configures the Copilot CLI and MCP server.
+Details on how `gh appmod` configures the MCP server and repository.
 
 ## MCP Server Configuration
 
-The App Modernization MCP server is what enables Copilot CLI to perform Java modernization tasks. It's configured in the Copilot CLI configuration file.
+The App Modernization MCP server enables Copilot to perform Java modernization tasks. It's configured in the Copilot CLI configuration file.
 
 ### Configuration File Location
 
@@ -52,74 +52,13 @@ You can also configure the MCP server manually:
 2. Add the `app-modernization` entry as shown above
 3. Verify with `gh appmod check`
 
-Or use the Copilot CLI's built-in command:
-
-```bash
-copilot
-# Then inside the interactive session:
-/mcp add app-modernization
-```
-
-### Session-Only Configuration
-
-If you don't run `gh appmod init`, the extension automatically injects the MCP server configuration for each session using Copilot CLI's `--additional-mcp-config` flag. This means:
-
-- The MCP server is available for that session only
-- No permanent changes are made to your configuration
-- You'll see an informational message each time
-
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `COPILOT_HOME` | Override the Copilot CLI configuration directory | `~/.copilot` |
 
-## Copilot CLI Pass-Through Options
-
-All action commands (`upgrade`, `migrate`, `deploy`) pass unrecognized flags through to `copilot`. Useful options include:
-
-### Model Selection
-
-```bash
-# Use a specific model
-gh appmod upgrade --model gpt-5.2 "Upgrade to JDK 21"
-```
-
-### Reasoning Effort
-
-```bash
-# Use higher reasoning effort for complex tasks
-gh appmod migrate --effort xhigh "Migrate Oracle SQL dialect to PostgreSQL"
-```
-
-### Permissions
-
-```bash
-# Auto-approve everything
-gh appmod upgrade --yolo
-
-# Or be more selective
-gh appmod upgrade --allow-all-tools
-```
-
-### Additional Directories
-
-```bash
-# Allow Copilot to access files outside the current directory
-gh appmod upgrade --add-dir /path/to/shared/libs "Upgrade to JDK 21"
-```
-
 ## Verifying Configuration
-
-### Check MCP Server Status
-
-After setup, verify in Copilot CLI:
-
-```bash
-copilot
-# Then:
-/mcp show
-```
 
 ### Check All Prerequisites
 
@@ -146,6 +85,29 @@ Or delete the entire config to start fresh:
 ```bash
 rm ~/.copilot/mcp-config.json
 ```
+
+## Modernization Skills
+
+The extension bundles modular skill definitions following the [agentskills.io](https://agentskills.io/) specification. Use `gh appmod add-skills` to install them into your repository at `.github/skills/`.
+
+### Available Skills
+
+| Skill | Description |
+|-------|-------------|
+| `assess` | Modernization posture assessment |
+| `upgrade` | General Java upgrade guidance |
+| `migrate` | Azure service migration tasks |
+| `deploy` | Azure deployment guidance |
+| `java-8-to-11` | JDK 8 → 11 upgrade instructions + checklist |
+| `java-11-to-17` | JDK 11 → 17 upgrade instructions + checklist |
+| `java-17-to-21` | JDK 17 → 21 upgrade instructions + checklist |
+| `java-21-to-25` | JDK 21 → 25 upgrade instructions + checklist |
+
+### How Skills Are Used
+
+- **Modernize CLI** — Automatically detects skills in `.github/skills/` when creating upgrade and migration plans
+- **Custom agent** — The `appmod.agent.md` agent is self-contained but also reads skills from `.github/skills/` when available
+- **Agentic workflows** — Workflows can reference skills for detailed instructions
 
 ## Next Steps
 
