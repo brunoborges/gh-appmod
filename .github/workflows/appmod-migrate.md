@@ -56,6 +56,12 @@ MCP server's predefined migration tasks.
 
 ## Migration Process
 
+### 0. Check for Custom Skills
+
+If this repository contains custom skills in `.github/skills/`, read them for additional
+context about migration targets and patterns. In particular, check the `migrate` skill
+for supported migration patterns and Azure service mappings.
+
 ### 1. Analyze Current Implementation
 
 Using the App Modernization MCP server tools:

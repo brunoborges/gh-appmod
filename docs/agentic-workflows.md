@@ -143,6 +143,35 @@ Migrates application services to Azure equivalents using the predefined migratio
 - Security (hardcoded secrets → Azure Key Vault)
 - Identity (LDAP → Microsoft Entra ID)
 
+### 4. Dependency Updates (`appmod-dependencies.md`)
+
+**Trigger:** Weekly schedule (Wednesday) + manual dispatch
+
+A lightweight, focused workflow that updates dependencies without changing the Java runtime or application framework version:
+
+- Scans for available dependency updates (patch, minor, major)
+- Categorizes updates by risk level
+- Applies updates and validates the build
+- Creates a PR with a summary table of all changes
+
+Supports configurable scope: `all` (default), `direct-only`, or `security-only`.
+
+This workflow complements the full upgrade workflow — it handles the routine dependency hygiene between major upgrades.
+
+### 5. Security Scan (`appmod-security.md`)
+
+**Trigger:** Twice weekly (Monday, Thursday) + manual dispatch
+
+Scans dependencies for known vulnerabilities (CVEs) and optionally applies fixes:
+
+- Generates a complete dependency tree (direct and transitive)
+- Identifies CVEs with severity filtering (critical, high, medium, low)
+- In `remediate` mode: upgrades to patched versions and creates a PR
+- In `report-only` mode: creates an issue with findings and recommendations
+- Prefers patch version bumps over major version jumps for safety
+
+Configurable inputs: minimum severity threshold and action mode (remediate vs. report-only).
+
 ## Getting Started
 
 ### Prerequisites

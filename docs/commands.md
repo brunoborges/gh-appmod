@@ -182,6 +182,8 @@ gh appmod add-workflows [options]
 | `.github/workflows/appmod-assess.md` | Weekly assessment — reports modernization posture as a GitHub issue |
 | `.github/workflows/appmod-upgrade.md` | Upgrade workflow — produces PRs with JDK/framework/dependency upgrades |
 | `.github/workflows/appmod-migrate.md` | Migration workflow — produces PRs migrating services to Azure |
+| `.github/workflows/appmod-dependencies.md` | Dependency updates — weekly PRs with latest compatible versions |
+| `.github/workflows/appmod-security.md` | Security scan — vulnerability detection and remediation PRs |
 
 ### Prerequisites
 
@@ -199,3 +201,64 @@ gh appmod add-workflows --no-compile
 ```
 
 See the [Agentic Workflows documentation](agentic-workflows.md) for details on each workflow, the security model, and customization options.
+
+---
+
+## `gh appmod status`
+
+Show the modernization status and workflow health for the current repository.
+
+### Usage
+
+```bash
+gh appmod status
+```
+
+### Behavior
+
+- Must be run from inside a Git repository with a GitHub remote
+- Uses `gh api` to query GitHub Actions for workflow run history
+- Shows the latest run status for each `appmod-*` workflow
+- Lists open pull requests and issues with the `app-modernization` label
+- Reports which workflows, skills, and agent are installed locally
+
+### Output Sections
+
+| Section | Description |
+|---------|-------------|
+| **Agentic Workflows** | Latest run status (✓ success, ✗ failure, ⟳ in progress) and date for each workflow |
+| **Open Pull Requests** | PRs created by workflows (labeled `app-modernization`) |
+| **Open Issues** | Issues created by workflows (labeled `app-modernization`) |
+| **Repository Setup** | Whether workflows, skills, and agent are installed locally |
+
+### Example Output
+
+```
+GitHub Copilot App Modernization for Java
+──────────────────────────────────────────
+
+Repository: myorg/my-java-app
+
+Agentic Workflows
+
+  ✓ appmod-assess          success      2026-04-07 09:00
+  ✗ appmod-upgrade         failure      2026-04-01 09:00
+  ✓ appmod-dependencies    success      2026-04-03 09:00
+  ✓ appmod-security        success      2026-04-04 09:00
+    appmod-migrate         not installed or never run
+
+Open Pull Requests
+
+  #42 [appmod-dependencies] Update 3 dependencies
+  #39 [appmod-security] Fix CVE-2026-1234 in jackson-databind
+
+Open Issues
+
+  #41 [appmod-assess] Modernization Assessment — April 2026
+
+Repository Setup
+
+✓ 5 workflow file(s) in .github/workflows/
+✓ 8 skill(s) in .github/skills/
+✓ Custom agent installed
+```

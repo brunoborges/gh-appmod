@@ -75,6 +75,12 @@ pull request with all necessary changes.
 
 ## Upgrade Process
 
+### 0. Check for Custom Skills
+
+If this repository contains custom skills in `.github/skills/`, read them for version-specific
+upgrade instructions and checklists. For example, if upgrading from JDK 17 to 21, look for
+`.github/skills/java-17-to-21/SKILL.md` and follow the instructions and checklist there.
+
 ### 1. Analyze Current State
 
 Using the App Modernization MCP server tools:

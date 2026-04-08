@@ -86,11 +86,43 @@ gh appmod add-skills
 
 This copies skill files into `.github/skills/` following the [agentskills.io](https://agentskills.io/) specification. Skills include Java version-specific upgrade instructions (8→11, 11→17, 17→21, 21→25), migration tasks, assessment, and deployment guidance.
 
-These skills are automatically detected by the Modernize CLI when creating plans.
+These skills are automatically detected by both the agentic workflows and the Modernize CLI when creating plans.
 
-## Step 6: Start Modernizing
+## Step 6: Enable Continuous Modernization
 
-Use the [Modernize CLI](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/overview) to run modernization operations:
+This is the main event. Add agentic workflows to your repository:
+
+```bash
+gh appmod add-workflows
+```
+
+This installs five workflow templates that will continuously assess, upgrade, and harden your Java application:
+
+| Workflow | Schedule | Output |
+|----------|----------|--------|
+| `appmod-assess` | Weekly | Issue with modernization posture |
+| `appmod-upgrade` | Monthly | PR with JDK/framework upgrades |
+| `appmod-dependencies` | Weekly | PR with dependency updates |
+| `appmod-security` | Twice weekly | PR with vulnerability fixes |
+| `appmod-migrate` | On demand | PR migrating services to Azure |
+
+## Step 7: Commit, Push, and Monitor
+
+```bash
+git add .github/
+git commit -m "Enable continuous app modernization"
+git push
+```
+
+Check your modernization health anytime:
+
+```bash
+gh appmod status
+```
+
+## One-Off Modernization
+
+For individual upgrade, migrate, or deploy operations, use the [Modernize CLI](https://learn.microsoft.com/azure/developer/github-copilot-app-modernization/modernization-agent/overview):
 
 ```bash
 modernize assess

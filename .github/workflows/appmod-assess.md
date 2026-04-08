@@ -46,6 +46,12 @@ and prioritize next steps.
 
 ## Analysis Steps
 
+### 0. Check for Custom Skills
+
+If this repository contains custom skills in `.github/skills/`, read them for additional
+context about the project's modernization goals, version targets, and constraints. In
+particular, check for version-specific upgrade skills (e.g., `java-8-to-11`, `java-17-to-21`).
+
 ### 1. Project Structure Discovery
 
 - Identify the build system (Maven, Gradle, or both)

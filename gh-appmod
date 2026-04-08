@@ -265,6 +265,8 @@ cmd_add_workflows() {
       echo "  .github/workflows/appmod-assess.md                 (weekly health check)"
       echo "  .github/workflows/appmod-upgrade.md                (upgrade via PR)"
       echo "  .github/workflows/appmod-migrate.md                (migration via PR)"
+      echo "  .github/workflows/appmod-dependencies.md           (dependency updates)"
+      echo "  .github/workflows/appmod-security.md               (vulnerability scan)"
       return 0
     fi
   done
@@ -312,6 +314,8 @@ cmd_add_workflows() {
     "appmod-assess.md"
     "appmod-upgrade.md"
     "appmod-migrate.md"
+    "appmod-dependencies.md"
+    "appmod-security.md"
   )
 
   for wf in "${workflow_files[@]}"; do
@@ -489,18 +493,199 @@ cmd_add_skills() {
   info "Learn more: https://aka.ms/ghcp-appmod"
 }
 
+cmd_status() {
+  for arg in "$@"; do
+    if [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+      echo "Usage: gh appmod status"
+      echo ""
+      echo "Show the modernization status for the current repository."
+      echo ""
+      echo "Displays:"
+      echo "  - Latest workflow run status for each appmod workflow"
+      echo "  - Open pull requests created by appmod workflows"
+      echo "  - Open issues created by appmod workflows"
+      return 0
+    fi
+  done
+
+  print_header
+  echo ""
+
+  # Verify we're in a git repository with a remote
+  if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    error "Not inside a Git repository."
+    exit 1
+  fi
+
+  # Detect owner/repo from git remote
+  local remote_url
+  remote_url=$(git remote get-url origin 2>/dev/null || true)
+  if [ -z "$remote_url" ]; then
+    error "No 'origin' remote found. This command requires a GitHub remote."
+    exit 1
+  fi
+
+  local repo_slug
+  repo_slug=$(echo "$remote_url" | sed -E 's#.*github\.com[:/]([^/]+/[^/.]+)(\.git)?$#\1#')
+  if [ -z "$repo_slug" ] || [ "$repo_slug" = "$remote_url" ]; then
+    error "Could not determine GitHub owner/repo from remote URL."
+    exit 1
+  fi
+
+  echo -e "${BOLD}Repository:${NC} ${repo_slug}"
+  echo ""
+
+  # ── Workflow runs ──────────────────────────────────────────────
+  echo -e "${BOLD}Agentic Workflows${NC}"
+  echo ""
+
+  local workflow_names=("appmod-assess" "appmod-upgrade" "appmod-migrate" "appmod-dependencies" "appmod-security")
+  local found_any=false
+
+  for wf_name in "${workflow_names[@]}"; do
+    # Query latest run for this workflow (try compiled .lock.yml first, then .yml)
+    local status="" conclusion="" created_at=""
+
+    for suffix in ".lock.yml" ".yml"; do
+      local api_response
+      api_response=$(gh api "repos/${repo_slug}/actions/workflows/${wf_name}${suffix}/runs?per_page=1" 2>/dev/null || true)
+
+      # Skip if API returned an error (404 for non-existent workflow)
+      if [ -z "$api_response" ] || echo "$api_response" | grep -q '"message"' 2>/dev/null; then
+        continue
+      fi
+
+      status=$(echo "$api_response" | node -e "
+        const d = JSON.parse(require('fs').readFileSync('/dev/stdin','utf8'));
+        const r = d.workflow_runs && d.workflow_runs[0];
+        if (r) console.log(r.status + '|' + (r.conclusion || '') + '|' + r.created_at);
+      " 2>/dev/null || true)
+
+      [ -n "$status" ] && break
+    done
+
+    if [ -z "$status" ]; then
+      printf "  %-24s %s\n" "${wf_name}" "not installed or never run"
+      continue
+    fi
+
+    found_any=true
+    local run_status run_conclusion run_date
+    run_status=$(echo "$status" | cut -d'|' -f1)
+    run_conclusion=$(echo "$status" | cut -d'|' -f2)
+    run_date=$(echo "$status" | cut -d'|' -f3)
+
+    local icon display_status
+    if [ "$run_status" = "completed" ]; then
+      case "$run_conclusion" in
+        success)  icon="${GREEN}✓${NC}"; display_status="success" ;;
+        failure)  icon="${RED}✗${NC}"; display_status="failure" ;;
+        cancelled) icon="${YELLOW}●${NC}"; display_status="cancelled" ;;
+        *)        icon="${YELLOW}●${NC}"; display_status="${run_conclusion:-unknown}" ;;
+      esac
+    elif [ "$run_status" = "in_progress" ] || [ "$run_status" = "queued" ]; then
+      icon="${BLUE}⟳${NC}"; display_status="$run_status"
+    else
+      icon="${YELLOW}●${NC}"; display_status="${run_status:-unknown}"
+    fi
+
+    # Format date (handle both BSD and GNU date)
+    local date_str="$run_date"
+    if [ -n "$run_date" ]; then
+      date_str=$(date -jf "%Y-%m-%dT%H:%M:%SZ" "$run_date" "+%Y-%m-%d %H:%M" 2>/dev/null || \
+                 date -d "$run_date" "+%Y-%m-%d %H:%M" 2>/dev/null || \
+                 echo "${run_date%T*}")
+    fi
+
+    printf "  %b %-22s %-12s %s\n" "$icon" "${wf_name}" "${display_status}" "${date_str}"
+  done
+
+  echo ""
+
+  # ── Open PRs from workflows ────────────────────────────────────
+  echo -e "${BOLD}Open Pull Requests${NC}"
+  echo ""
+
+  local pr_list
+  pr_list=$(gh pr list --repo "$repo_slug" --label "app-modernization" --state open \
+    --json number,title,createdAt,url --jq '.[] | "  #\(.number) \(.title)"' 2>/dev/null || true)
+
+  if [ -n "$pr_list" ]; then
+    echo "$pr_list"
+  else
+    echo "  No open modernization PRs"
+  fi
+
+  echo ""
+
+  # ── Open issues from workflows ─────────────────────────────────
+  echo -e "${BOLD}Open Issues${NC}"
+  echo ""
+
+  local issue_list
+  issue_list=$(gh issue list --repo "$repo_slug" --label "app-modernization" --state open \
+    --json number,title,createdAt,url --jq '.[] | "  #\(.number) \(.title)"' 2>/dev/null || true)
+
+  if [ -n "$issue_list" ]; then
+    echo "$issue_list"
+  else
+    echo "  No open modernization issues"
+  fi
+
+  echo ""
+
+  # ── Skills and workflows installed ─────────────────────────────
+  local repo_root
+  repo_root=$(git rev-parse --show-toplevel)
+
+  echo -e "${BOLD}Repository Setup${NC}"
+  echo ""
+
+  # Check for installed workflows
+  local wf_count=0
+  for wf_file in "${repo_root}/.github/workflows"/appmod-*.md "${repo_root}/.github/workflows"/appmod-*.lock.yml; do
+    [ -f "$wf_file" ] && wf_count=$((wf_count + 1))
+  done
+  if [ "$wf_count" -gt 0 ]; then
+    success "${wf_count} workflow file(s) in .github/workflows/"
+  else
+    warn "No appmod workflows installed. Run: gh appmod add-workflows"
+  fi
+
+  # Check for installed skills
+  local skill_count=0
+  if [ -d "${repo_root}/.github/skills" ]; then
+    skill_count=$(find "${repo_root}/.github/skills" -name "SKILL.md" 2>/dev/null | wc -l | tr -d ' ')
+  fi
+  if [ "$skill_count" -gt 0 ]; then
+    success "${skill_count} skill(s) in .github/skills/"
+  else
+    warn "No skills installed. Run: gh appmod add-skills"
+  fi
+
+  # Check for agent
+  if [ -f "${repo_root}/.github/agents/appmod.agent.md" ]; then
+    success "Custom agent installed"
+  else
+    warn "No custom agent. Run: gh appmod init"
+  fi
+
+  echo ""
+}
+
 cmd_help() {
   print_header
   echo ""
   echo -e "${BOLD}Usage:${NC} gh appmod <command> [options]"
   echo ""
   echo -e "${BOLD}Setup:${NC}"
-  echo "  check           Check prerequisites (Node.js, npm, Copilot CLI)"
+  echo "  check           Check prerequisites (Node.js, npm)"
   echo "  init            Configure MCP server and add custom Copilot agent"
   echo ""
-  echo -e "${BOLD}Repository setup:${NC}"
-  echo "  add-skills      Add custom modernization skills to .github/skills/"
+  echo -e "${BOLD}Repository:${NC}"
+  echo "  add-skills      Add modernization skills to .github/skills/"
   echo "  add-workflows   Add agentic workflows for continuous modernization"
+  echo "  status          Show modernization status and workflow health"
   echo ""
   echo -e "${BOLD}Options:${NC}"
   echo "  -h, --help      Show help for a command"
@@ -510,10 +695,8 @@ cmd_help() {
   echo "  1. gh appmod check           # Verify prerequisites"
   echo "  2. gh appmod init             # Configure MCP server + agent"
   echo "  3. gh appmod add-skills       # Add skills to your repo"
-  echo "  4. modernize upgrade          # Upgrade with Modernize CLI"
-  echo ""
-  echo -e "${BOLD}Continuous modernization:${NC}"
-  echo "  gh appmod add-workflows       # Add agentic workflows to your repo"
+  echo "  4. gh appmod add-workflows    # Enable continuous modernization"
+  echo "  5. gh appmod status           # Check workflow health"
   echo ""
   echo -e "${BOLD}Modernize CLI:${NC}"
   echo "  For upgrade, migrate, and deploy operations, use the Modernize CLI:"
@@ -530,6 +713,7 @@ case "${1:-}" in
   init)           shift; cmd_init "$@" ;;
   add-skills)     shift; cmd_add_skills "$@" ;;
   add-workflows)  shift; cmd_add_workflows "$@" ;;
+  status)         shift; cmd_status "$@" ;;
   -v|--version) echo "gh-appmod $VERSION" ;;
   -h|--help|"") cmd_help ;;
   *)
