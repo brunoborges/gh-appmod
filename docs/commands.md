@@ -65,6 +65,13 @@ gh appmod init
 - Skips if the agent file already exists (safe to re-run)
 - Skips if not inside a Git repository
 
+**Step 3: Copilot Cloud Agent Setup Steps**
+
+- Copies `.github/workflows/copilot-setup-steps.yml` into the repo
+- This configures the [Copilot cloud agent](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/cloud-agent/customize-the-agent-environment) environment with Java 21, Node.js 22, and the Modernize CLI
+- Ensures the cloud agent can build your Java project and run modernization tools
+- Skips if the file already exists (safe to re-run)
+
 ### Configuration Added
 
 The following entry is added to `~/.copilot/mcp-config.json`:
@@ -87,6 +94,7 @@ The following entry is added to `~/.copilot/mcp-config.json`:
 | File | Description |
 |------|-------------|
 | `.github/agents/appmod.agent.md` | Custom Copilot agent for interactive modernization in Copilot Chat |
+| `.github/workflows/copilot-setup-steps.yml` | Cloud agent environment setup (Java, Node.js, Modernize CLI) |
 
 ### Environment Variables
 

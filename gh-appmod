@@ -242,7 +242,29 @@ MCPEOF
 
   echo ""
   info "The custom agent enables App Modernization in Copilot Chat."
-  info "Commit it with: git add .github/agents/ && git commit -m 'Add app modernization agent'"
+
+  # Step 3: Add copilot-setup-steps.yml for cloud coding agent environment
+  echo ""
+  echo -e "${BOLD}Step 3: Adding Copilot cloud agent setup steps...${NC}"
+  echo ""
+
+  local setup_src="${EXTENSION_DIR}/.github/workflows/copilot-setup-steps.yml"
+  local target_workflows_dir="${repo_root}/.github/workflows"
+  local setup_dst="${target_workflows_dir}/copilot-setup-steps.yml"
+
+  if [ ! -f "$setup_src" ]; then
+    warn "copilot-setup-steps.yml not found in extension. Skipping."
+  elif [ -f "$setup_dst" ]; then
+    success "copilot-setup-steps.yml already exists"
+  else
+    mkdir -p "$target_workflows_dir"
+    cp "$setup_src" "$setup_dst"
+    success "Added .github/workflows/copilot-setup-steps.yml"
+    info "This installs Java, Node.js, and the Modernize CLI in the cloud agent environment."
+  fi
+
+  echo ""
+  info "Commit changes with: git add .github/ && git commit -m 'Set up app modernization'"
 }
 
 cmd_add_workflows() {
@@ -267,6 +289,9 @@ cmd_add_workflows() {
       echo "  .github/workflows/appmod-migrate.md                (migration via PR)"
       echo "  .github/workflows/appmod-dependencies.md           (dependency updates)"
       echo "  .github/workflows/appmod-security.md               (vulnerability scan)"
+      echo ""
+      echo "Note: Run 'gh appmod init' first to also add copilot-setup-steps.yml,"
+      echo "which configures the cloud agent environment with Java and Modernize CLI."
       return 0
     fi
   done
